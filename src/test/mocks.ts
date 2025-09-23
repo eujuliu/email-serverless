@@ -24,27 +24,33 @@ const mockLogger = {
 
 const mockPrisma = {
   user: { findFirst: vi.fn() },
-  email: { create: vi.fn() },
+  email: { findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
 };
 
-const mockHonoContext = {
+const mockHonoContext = (
+  userId: string,
+  params: Record<string, string | number>,
+) => ({
   var: { logger: mockLogger },
   get: vi.fn((key: "prisma" | "jwtPayload") => {
     const vars = {
       prisma: mockPrisma,
       jwtPayload: {
-        userId: "d30d037e-de9d-4214-b84a-08d70f6365d1",
+        userId,
       } as JwtClaims,
     };
 
-    return vars[key];
+    return vars[key] ?? undefined;
   }),
-  req: { json: vi.fn() },
+  req: {
+    json: vi.fn(),
+    param: vi.fn((key: string) => params[key] ?? undefined),
+  },
   json: vi.fn(),
   header: vi.fn(),
   status: vi.fn(),
   text: vi.fn(),
-};
+});
 
 const mockHonoNext = vi.fn().mockResolvedValue(undefined) as Next;
 

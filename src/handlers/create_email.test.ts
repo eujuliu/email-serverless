@@ -5,8 +5,12 @@ import type { Env, JwtClaims } from "../index.js";
 import { mockHonoContext, mockLogger, mockPrisma } from "../test/mocks.js";
 
 describe("createEmailHandler", () => {
+  const userId = crypto.randomUUID();
+  const emailId = crypto.randomUUID();
+  const mockContext = mockHonoContext(userId, { id: emailId });
+
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("should create email successfully", async () => {
@@ -16,39 +20,39 @@ describe("createEmailHandler", () => {
       html: "<p>Test</p>",
     };
 
-    (mockHonoContext.req!.json as any).mockResolvedValue(body);
+    (mockContext.req.json as any).mockResolvedValue(body);
 
     mockPrisma.user.findFirst.mockResolvedValue({
-      id: "d30d037e-de9d-4214-b84a-08d70f6365d1",
+      id: userId,
     });
     mockPrisma.email.create.mockResolvedValue({
-      id: "27af7955-73cc-43ef-9fa3-4e2b513b585c",
+      id: emailId,
       subject: body.subject,
       audience: body.audience,
       html: body.html,
-      userId: "d30d037e-de9d-4214-b84a-08d70f6365d1",
+      userId: userId,
     });
 
-    await createEmailHandler(mockHonoContext as any);
+    await createEmailHandler(mockContext as any);
 
     expect(mockPrisma.user.findFirst).toHaveBeenCalledWith({
-      where: { id: "d30d037e-de9d-4214-b84a-08d70f6365d1" },
+      where: { id: userId },
     });
     expect(mockPrisma.email.create).toHaveBeenCalledWith({
       data: {
         subject: body.subject,
         audience: body.audience,
         html: body.html,
-        userId: "d30d037e-de9d-4214-b84a-08d70f6365d1",
+        userId: userId,
       },
     });
-    expect(mockHonoContext.json).toHaveBeenCalledWith(
+    expect(mockContext.json).toHaveBeenCalledWith(
       {
-        id: "27af7955-73cc-43ef-9fa3-4e2b513b585c",
+        id: emailId,
         subject: body.subject,
         audience: body.audience,
         html: body.html,
-        userId: "d30d037e-de9d-4214-b84a-08d70f6365d1",
+        userId: userId,
       },
       201,
     );
@@ -60,11 +64,11 @@ describe("createEmailHandler", () => {
       subject: "Hi",
       html: "",
     };
-    (mockHonoContext.req!.json as any).mockResolvedValue(body);
+    (mockContext.req!.json as any).mockResolvedValue(body);
 
-    await createEmailHandler(mockHonoContext as any);
+    await createEmailHandler(mockContext as any);
 
-    expect(mockHonoContext.json).toHaveBeenCalledWith(
+    expect(mockContext.json).toHaveBeenCalledWith(
       { error: expect.any(String) },
       400,
     );
@@ -76,12 +80,12 @@ describe("createEmailHandler", () => {
       subject: "Test Subject",
       html: "<p>Test</p>",
     };
-    (mockHonoContext.req!.json as any).mockResolvedValue(body);
+    (mockContext.req!.json as any).mockResolvedValue(body);
     mockPrisma.user.findFirst.mockResolvedValue(null);
 
-    await createEmailHandler(mockHonoContext as any);
+    await createEmailHandler(mockContext as any);
 
-    expect(mockHonoContext.json).toHaveBeenCalledWith(
+    expect(mockContext.json).toHaveBeenCalledWith(
       { error: "User not found" },
       404,
     );
@@ -93,16 +97,16 @@ describe("createEmailHandler", () => {
       subject: "Test Subject",
       html: "<p>Test</p>",
     };
-    (mockHonoContext.req!.json as any).mockResolvedValue(body);
+    (mockContext.req!.json as any).mockResolvedValue(body);
     mockPrisma.user.findFirst.mockResolvedValue({
-      id: "d30d037e-de9d-4214-b84a-08d70f6365d1",
+      id: userId,
     });
     mockPrisma.email.create.mockRejectedValue(new Error("DB Error"));
 
-    await createEmailHandler(mockHonoContext as any);
+    await createEmailHandler(mockContext as any);
 
     expect(mockLogger.error).toHaveBeenCalledWith("DB Error");
-    expect(mockHonoContext.json).toHaveBeenCalledWith(
+    expect(mockContext.json).toHaveBeenCalledWith(
       { error: "Internal Server Error" },
       500,
     );

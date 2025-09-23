@@ -14,8 +14,10 @@ vi.mock("@hono/node-server/conninfo", () => ({
 }));
 
 describe("Rate Limiter Middleware", () => {
+  const mockContext = mockHonoContext("", {});
+
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("should allow request and call next when under limit", async () => {
@@ -23,18 +25,15 @@ describe("Rate Limiter Middleware", () => {
 
     const middleware = rateLimiter(mockConfig, mockRedis as any);
 
-    await middleware(mockHonoContext as any, mockHonoNext);
+    await middleware(mockContext as any, mockHonoNext);
 
     expect(mockHonoNext).toHaveBeenCalled();
-    expect(mockHonoContext.header).toHaveBeenCalledWith(
+    expect(mockContext.header).toHaveBeenCalledWith(
       "X-Ratelimit-Remaining",
       "9",
     );
-    expect(mockHonoContext.header).toHaveBeenCalledWith(
-      "X-Ratelimit-Limit",
-      "10",
-    );
-    expect(mockHonoContext.status).not.toHaveBeenCalled();
+    expect(mockContext.header).toHaveBeenCalledWith("X-Ratelimit-Limit", "10");
+    expect(mockContext.status).not.toHaveBeenCalled();
   });
 
   it("should deny request and return 429 when over limit", async () => {
@@ -42,10 +41,10 @@ describe("Rate Limiter Middleware", () => {
 
     const middleware = rateLimiter(mockConfig, mockRedis as any);
 
-    await middleware(mockHonoContext as any, mockHonoNext);
+    await middleware(mockContext as any, mockHonoNext);
 
     expect(mockHonoNext).not.toHaveBeenCalled();
-    expect(mockHonoContext.status).toHaveBeenCalledWith(429);
-    expect(mockHonoContext.text).toHaveBeenCalledWith("Rate Limit Exceeded");
+    expect(mockContext.status).toHaveBeenCalledWith(429);
+    expect(mockContext.text).toHaveBeenCalledWith("Rate Limit Exceeded");
   });
 });

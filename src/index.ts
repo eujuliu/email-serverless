@@ -10,6 +10,7 @@ import { rateLimiter } from "./rate_limiter.js";
 import { PrismaClient } from "../generated/prisma/index.js";
 import { createEmailHandler } from "./handlers/create_email.js";
 import { pinoLogger } from "hono-pino";
+import { updateEmailHandler } from "./handlers/update_email.js";
 
 export type JwtClaims = {
   userId: string;
@@ -57,6 +58,12 @@ async function main() {
   });
 
   app.post("/email", rateLimiterMiddleware, jwtMiddleware, createEmailHandler);
+  app.put(
+    "/email/:id",
+    rateLimiterMiddleware,
+    jwtMiddleware,
+    updateEmailHandler,
+  );
 
   process.once("SIGTERM", async () => {
     logger.info("SIGTERM received, closing server!");
