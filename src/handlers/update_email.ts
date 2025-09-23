@@ -34,13 +34,13 @@ export async function updateEmailHandler(c: Context<Env>) {
   const prisma = c.get("prisma");
   const { id, audience, subject, html, userId } = result.data;
 
-  const userExists = await prisma.user.findFirst({
+  const exists = await prisma.user.findFirst({
     where: {
       id: userId,
     },
   });
 
-  if (!userExists) {
+  if (!exists) {
     return c.json(
       {
         error: "User not found",

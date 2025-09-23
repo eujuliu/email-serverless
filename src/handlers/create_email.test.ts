@@ -20,7 +20,7 @@ describe("createEmailHandler", () => {
       html: "<p>Test</p>",
     };
 
-    (mockContext.req.json as any).mockResolvedValue(body);
+    mockContext.req.json.mockResolvedValue(body);
 
     mockPrisma.user.findFirst.mockResolvedValue({
       id: userId,
@@ -64,7 +64,7 @@ describe("createEmailHandler", () => {
       subject: "Hi",
       html: "",
     };
-    (mockContext.req!.json as any).mockResolvedValue(body);
+    mockContext.req.json.mockResolvedValue(body);
 
     await createEmailHandler(mockContext as any);
 
@@ -80,7 +80,8 @@ describe("createEmailHandler", () => {
       subject: "Test Subject",
       html: "<p>Test</p>",
     };
-    (mockContext.req!.json as any).mockResolvedValue(body);
+
+    mockContext.req.json.mockResolvedValue(body);
     mockPrisma.user.findFirst.mockResolvedValue(null);
 
     await createEmailHandler(mockContext as any);
@@ -97,7 +98,8 @@ describe("createEmailHandler", () => {
       subject: "Test Subject",
       html: "<p>Test</p>",
     };
-    (mockContext.req!.json as any).mockResolvedValue(body);
+
+    mockContext.req.json.mockResolvedValue(body);
     mockPrisma.user.findFirst.mockResolvedValue({
       id: userId,
     });

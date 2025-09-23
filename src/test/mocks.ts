@@ -24,7 +24,13 @@ const mockLogger = {
 
 const mockPrisma = {
   user: { findFirst: vi.fn() },
-  email: { findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
+  email: {
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    update: vi.fn(),
+    create: vi.fn(),
+    count: vi.fn(),
+  },
 };
 
 const mockHonoContext = (
