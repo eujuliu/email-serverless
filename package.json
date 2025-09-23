@@ -1,39 +1,42 @@
 {
-	"name": "email",
-	"type": "module",
-	"scripts": {
-		"dev": "tsx watch src/index.ts",
-		"build": "tsc",
-		"start": "node dist/index.js",
-		"predocker:dev": "rm -f .env.docker && cat .env* > .env.docker",
-		"docker:dev": "docker compose --env-file ./.env.docker -f ./docker-compose.development.yml -p email-worker watch --prune",
-		"docker:dev:down": "docker stop $(docker ps -a -q --filter \"label=com.docker.compose.project=email-worker\") && docker system prune -a --filter \"label=com.docker.compose.project=email-worker\" -f && rm -f .env.docker",
-		"lint": "exec biome lint --write",
-		"lint:check": "exec biome check --write",
-		"test": "vitest",
-		"prepare": "husky",
-		"pre-commit": "lint-staged"
-	},
-	"lint-staged": {
-		"*": "pnpm run lint && pnpm run test"
-	},
-	"dependencies": {
-		"@hono/node-server": "^1.19.4",
-		"hono": "^4.9.8",
-		"hono-pino": "^0.10.2",
-		"pino": "^9.11.0",
-		"redis": "^5.8.2",
-		"zod": "^4.1.11"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "2.2.4",
-		"@commitlint/cli": "^19.8.1",
-		"@commitlint/config-conventional": "^19.8.1",
-		"@types/node": "^20.11.17",
-		"husky": "^9.1.7",
-		"lint-staged": "^16.2.0",
-		"tsx": "^4.7.1",
-		"typescript": "^5.8.3",
-		"vitest": "^3.2.4"
-	}
+  "name": "email",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "predocker:dev": "rm -f .env.docker && cat .env* > .env.docker",
+    "docker:dev": "docker compose --env-file ./.env.docker -f ./docker-compose.development.yml -p email-worker watch --prune",
+    "docker:dev:down": "docker stop $(docker ps -a -q --filter \"label=com.docker.compose.project=email-worker\") && docker system prune -a --filter \"label=com.docker.compose.project=email-worker\" -f && rm -f .env.docker",
+    "lint": "exec biome lint --write",
+    "lint:check": "exec biome check --write",
+    "test": "vitest",
+    "prepare": "husky",
+    "pre-commit": "lint-staged",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "lint-staged": {
+    "*": "pnpm run lint && pnpm run test"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.4",
+    "@prisma/client": "6.16.2",
+    "hono": "^4.9.8",
+    "hono-pino": "^0.10.2",
+    "pino": "^9.11.0",
+    "redis": "^5.8.2",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.4",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "@types/node": "^20.11.17",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.0",
+    "prisma": "^6.16.2",
+    "tsx": "^4.7.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
 }
