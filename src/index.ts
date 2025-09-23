@@ -7,12 +7,13 @@ import { pinoLogger } from "hono-pino";
 import { pino } from "pino";
 import { initializeConfig } from "./config.js";
 import initializeRedis from "./redis.js";
-import { rateLimiter } from "./middleware.js";
+import { rateLimiter } from "./rate_limiter.js";
 
 type Variables = JwtVariables;
 
+export const app = new Hono<{ Variables: Variables }>();
+
 async function main() {
-  const app = new Hono<{ Variables: Variables }>();
   const logger = pino();
   const config = initializeConfig(logger);
   const { PORT, NODE_ENV, JWT_SECRET } = config;
@@ -21,7 +22,7 @@ async function main() {
   const jwtMiddleware = jwt({
     secret: JWT_SECRET,
   });
-  const rateLimiterMiddleware = rateLimiter(config, redis);
+  const rateLimiterMiddleware = rateLimiter(config, redis as any);
   app.use(
     pinoLogger({
       pino: { level: NODE_ENV.match(/prod/) ? "info" : "debug" },
