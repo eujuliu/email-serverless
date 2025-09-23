@@ -1,0 +1,51 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  username       String   @unique @db.VarChar(20)
+  email          String   @unique @db.VarChar(255)
+  password       String   @db.VarChar(72)
+  credits        Int
+  frozenCredits  Int      @map("frozen_credits")
+
+  emails         Email[]
+
+  @@map("users")
+}
+
+model Email {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  audience  String[]
+  subject   String
+  html      String
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status    EmailStatus @default(DRAFT)
+
+  @@map("emails")
+}
+
+enum EmailStatus {
+  DRAFT
+  SCHEDULED
+}
