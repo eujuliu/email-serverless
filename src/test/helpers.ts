@@ -1,0 +1,35 @@
+import type { $Enums } from "../../generated/prisma/index.js";
+import { mockPrisma } from "./mocks.js";
+
+export function mockPrismaFindFirstUser(id: string) {
+  mockPrisma.user.findFirst.mockResolvedValue({
+    id,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    credits: 0,
+    frozenCredits: 0,
+    email: "",
+    password: "",
+    username: "",
+  });
+}
+
+export function mockPrismaCreateEmail(
+  id: string,
+  userId: string,
+  subject: string,
+  audience: string[],
+  html: string,
+  status: $Enums.EmailStatus,
+) {
+  mockPrisma.email.create.mockResolvedValue({
+    id,
+    subject,
+    audience,
+    html,
+    userId,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    status,
+  });
+}

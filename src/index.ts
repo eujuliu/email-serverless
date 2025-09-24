@@ -11,9 +11,9 @@ import { createEmailHandler } from "./handlers/create_email.js";
 import { getEmailHandler } from "./handlers/get_email.js";
 import { getEmailsHandler } from "./handlers/get_emails.js";
 import { updateEmailHandler } from "./handlers/update_email.js";
-import initializeRabbitMQ, { addDurableQueue } from "./infra/rabbitmq.js";
+import { initializeRabbitMQ, addDurableQueue } from "./infra/rabbitmq.js";
 import { rateLimiter } from "./infra/rate_limiter.js";
-import initializeRedis from "./infra/redis.js";
+import { initializeRedis } from "./infra/redis.js";
 import { sendEmailsHandler } from "./handlers/send_emails.js";
 
 export type JwtClaims = {

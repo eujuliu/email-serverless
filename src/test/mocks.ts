@@ -1,22 +1,42 @@
+import { pino } from "pino";
 import { vi } from "vitest";
+import { PrismaClient } from "../../generated/prisma/index.js";
 
 vi.mock("pino", () => ({
   pino: vi.fn().mockReturnValue({
     error: vi.fn(),
+    info: vi.fn(),
   }),
 }));
 
 vi.mock("../config.ts", () => ({
   initializeConfig: vi.fn().mockReturnValue({
-    RATE_LIMITER_LIMIT: 10,
-    RATE_LIMITER_WINDOWSIZE: 60,
-    RATE_LIMITER_SUBWINDOWSIZE: 20,
+    PORT: 3000,
+    NODE_ENV: "debug",
+    JWT_SECRET: "123",
 
-    EMAIL_SMTP_HOST: "smtp.example.com",
-    EMAIL_SMTP_PORT: 587,
-    EMAIL_USER: "user@example.com",
-    EMAIL_PASSWORD: "password",
-    EMAIL_FROM: "from@example.com",
+    POSTGRES_USER: "local_user",
+    POSTGRES_PASSWORD: "local_password",
+    POSTGRES_DB: "taskscheduler",
+    POSTGRES_HOST: "postgres",
+    POSTGRES_PORT: 5432,
+
+    REDIS_HOST: "redis",
+    REDIS_PORT: "6379",
+
+    RABBITMQ_DEFAULT_USER: "local_user",
+    RABBITMQ_DEFAULT_PASS: "local_password",
+    RABBITMQ_PORT: 5672,
+    RABBITMQ_HOST: "rabbitmq",
+    RABBITMQ_CONNECTION_STRING: "",
+
+    EMAIL_SMTP_HOST: "mailcatcher",
+    EMAIL_SMTP_PORT: 465,
+    EMAIL_HTTP_HOST: "mailcatcher",
+    EMAIL_HTTP_PORT: 1080,
+    EMAIL_USER: "nodemailer",
+    EMAIL_PASSWORD: "",
+    EMAIL_FROM: "test@email.com",
   }),
 }));
 
@@ -31,6 +51,8 @@ vi.mock("../../generated/prisma/index.js", () => ({
       count: vi.fn(),
     },
     task: { findFirst: vi.fn() },
+
+    $disconnect: vi.fn(),
   }),
 }));
 
@@ -63,3 +85,18 @@ vi.mock("nodemailer", () => ({
     sendMail: vi.fn(),
   }),
 }));
+
+export const mockHonoContext = {
+  var: { logger: pino() },
+  get: vi.fn(),
+  req: {
+    json: vi.fn(),
+    param: vi.fn(),
+  },
+  json: vi.fn(),
+  header: vi.fn(),
+  status: vi.fn(),
+  text: vi.fn(),
+};
+
+export const mockPrisma = vi.mockObject(new PrismaClient());

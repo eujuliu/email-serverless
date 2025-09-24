@@ -2,7 +2,7 @@ import * as amqp from "amqplib";
 import type pino from "pino";
 import type { Config } from "../config.js";
 
-export default async function initializeRabbitMQ(
+export async function initializeRabbitMQ(
   logger: pino.Logger<never, boolean>,
   config: Config,
 ) {

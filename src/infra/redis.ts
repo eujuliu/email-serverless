@@ -2,7 +2,7 @@ import type pino from "pino";
 import { createClient } from "redis";
 import type { Config } from "../config.js";
 
-export default async function initializeRedis(
+export async function initializeRedis(
   logger: pino.Logger<never, boolean>,
   config: Config,
 ) {
