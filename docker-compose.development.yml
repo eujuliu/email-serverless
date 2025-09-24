@@ -26,7 +26,21 @@ services:
       timeout: 3s
       retries: 3
 
-  app:
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    restart: unless-stopped
+    container_name: rabbitmq
+    env_file: ./.env.docker
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+
+  email-worker:
     build:
       context: .
       dockerfile: Dockerfile.development
@@ -39,6 +53,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
     develop:
@@ -57,15 +73,30 @@ services:
           target: /app/
           ignore:
             - "!.env*"
+        - action: rebuild
+          path: ./package.json
+          target: /app/
+          ignore:
+            - "!package.json"
 
-  # ngrok:
-  #   image: ngrok/ngrok:latest
-  #   restart: unless-stopped
-  #   container_name: ngrok
-  #   command:
-  #     - "http"
-  #     - "--url=${NGROK_URL}"
-  #     - "http://app:${PORT}"
-  #   env_file: ./.env.docker
-  #   ports:
-  #     - 4040:4040
+  ngrok:
+    image: ngrok/ngrok:latest
+    restart: unless-stopped
+    container_name: ngrok
+    command:
+      - "http"
+      - "--url=${NGROK_URL}"
+      - "http://email-worker:${PORT}"
+    env_file: ./.env.docker
+    ports:
+      - 4040:4040
+
+  mailcatcher:
+    container_name: mailcatcher
+    image: sj26/mailcatcher
+    expose:
+      - "${EMAIL_SMTP_PORT}"
+      - "${EMAIL_HTTP_PORT}"
+    ports:
+      - "${EMAIL_SMTP_PORT}:1025"
+      - "${EMAIL_HTTP_PORT}:1080"

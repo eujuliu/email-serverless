@@ -14,6 +14,15 @@ const Schema = z.object({
   ),
   REDIS_USERNAME: z.string().default(""),
   REDIS_PASSWORD: z.string().default(""),
+  RABBITMQ_CONNECTION_STRING: z
+    .string()
+    .min(1, "RABBITMQ_CONNECTION_STRING is required"),
+
+  EMAIL_SMTP_HOST: z.string().min(1, "EMAIL_SMTP_HOST is required"),
+  EMAIL_SMTP_PORT: z.string().min(1, "EMAIL_SMTP_PORT is required"),
+  EMAIL_USER: z.string().min(1, "EMAIL_USER is required"),
+  EMAIL_PASSWORD: z.string().default(""),
+  EMAIL_FROM: z.string().min(1, "EMAIL_FROM is required"),
 
   RATE_LIMITER_LIMIT: z.preprocess(
     (val) => (val ? Number(val) : 10),

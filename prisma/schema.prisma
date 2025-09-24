@@ -25,7 +25,9 @@ model User {
   frozenCredits  Int      @map("frozen_credits")
 
   emails         Email[]
+  tasks          Task[]
 
+  @@index([email, username])
   @@map("users")
 }
 
@@ -42,7 +44,38 @@ model Email {
 
   status    EmailStatus @default(DRAFT)
 
+  @@index([userId])
   @@map("emails")
+}
+
+model Task {
+  id             String   @id @default(uuid())
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  type           String   @db.VarChar(50)
+  cost           Int
+  runAt          DateTime @map("run_at")
+  timezone       String
+  retries        Int
+  priority       Int
+  referenceId    String   @db.VarChar(128) @map("reference_id")
+  idempotencyKey String   @db.VarChar(128) @map("idempotency_key")
+
+  userId         String   @map("user_id")
+  user           User     @relation(fields: [userId], references: [id], onDelete: NoAction)
+
+  status         TaskStatus @default(PENDING)
+
+  @@index([userId])
+  @@map("tasks")
+}
+
+enum TaskStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELED
 }
 
 enum EmailStatus {
