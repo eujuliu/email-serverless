@@ -8,4 +8,4 @@ RUN npm install
 
 COPY --chown=app:app . /app
 
-CMD ["npm", "run", "dev"]
+CMD ["sh", "-c", "npx prisma db push && npm run dev"]
