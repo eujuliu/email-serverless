@@ -33,3 +33,40 @@ export function mockPrismaCreateEmail(
     status,
   });
 }
+
+export function mockPrismaFirstFirstEmail(
+  id: string,
+  userId: string,
+  status: $Enums.EmailStatus,
+) {
+  mockPrisma.email.findFirst.mockResolvedValue({
+    id,
+    subject: "",
+    audience: [""],
+    html: "",
+    userId,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    status,
+  });
+}
+
+export function mockPrismaUpdateEmail(
+  id: string,
+  userId: string,
+  subject: string,
+  audience: string[],
+  html: string,
+  status: $Enums.EmailStatus,
+) {
+  mockPrisma.email.update.mockResolvedValue({
+    id,
+    subject,
+    audience,
+    html,
+    userId,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    status,
+  });
+}
