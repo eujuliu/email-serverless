@@ -6,6 +6,7 @@ import {
 } from "../test/helpers.js";
 import { mockHonoContext, mockPrisma } from "../test/mocks.js";
 import { createEmailHandler } from "./create_email.js";
+import type { Context } from "hono";
 
 describe("Create Email Handler", () => {
   beforeEach(() => {
@@ -44,7 +45,7 @@ describe("Create Email Handler", () => {
       "DRAFT",
     );
 
-    await createEmailHandler(mockHonoContext as any);
+    await createEmailHandler(mockHonoContext as unknown as Context);
 
     expect(mockPrisma.user.findFirst).toBeCalledWith({ where: { id: userId } });
     expect(mockPrisma.email.create).toBeCalledWith({
@@ -67,7 +68,7 @@ describe("Create Email Handler", () => {
     mockHonoContext.req.json.mockResolvedValue(body);
     mockPrisma.user.findFirst.mockResolvedValue(null);
 
-    await createEmailHandler(mockHonoContext as any);
+    await createEmailHandler(mockHonoContext as unknown as Context);
 
     expect(mockHonoContext.json).toBeCalledWith(
       {
@@ -85,7 +86,7 @@ describe("Create Email Handler", () => {
     };
     mockHonoContext.req.json.mockResolvedValue(body);
 
-    await createEmailHandler(mockHonoContext as any);
+    await createEmailHandler(mockHonoContext as unknown as Context);
 
     expect(mockHonoContext.json).toBeCalledWith(
       {

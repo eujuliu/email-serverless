@@ -14,6 +14,49 @@ export function mockPrismaFindFirstUser(id: string) {
   });
 }
 
+export function mockPrismaFindFirstEmail(
+  id: string,
+  userId: string,
+  status: $Enums.EmailStatus,
+) {
+  mockPrisma.email.findFirst.mockResolvedValue({
+    id,
+    subject: "",
+    audience: [""],
+    html: "",
+    userId,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    status,
+  });
+}
+
+export function mockPrismaFindManyEmail(userId: string) {
+  mockPrisma.email.count.mockResolvedValue(2);
+  mockPrisma.email.findMany.mockResolvedValue([
+    {
+      id: crypto.randomUUID(),
+      subject: "test 1",
+      audience: [""],
+      html: "",
+      userId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      status: "DRAFT",
+    },
+    {
+      id: crypto.randomUUID(),
+      subject: "test 2",
+      audience: [""],
+      html: "",
+      userId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      status: "SCHEDULED",
+    },
+  ]);
+}
+
 export function mockPrismaCreateEmail(
   id: string,
   userId: string,
@@ -27,23 +70,6 @@ export function mockPrismaCreateEmail(
     subject,
     audience,
     html,
-    userId,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    status,
-  });
-}
-
-export function mockPrismaFirstFirstEmail(
-  id: string,
-  userId: string,
-  status: $Enums.EmailStatus,
-) {
-  mockPrisma.email.findFirst.mockResolvedValue({
-    id,
-    subject: "",
-    audience: [""],
-    html: "",
     userId,
     createdAt: new Date(),
     updatedAt: new Date(),

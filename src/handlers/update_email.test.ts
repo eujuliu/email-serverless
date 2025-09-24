@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import "../test/mocks.js";
-import { mockHonoContext, mockPrisma } from "../test/mocks.js";
 import {
   mockPrismaFindFirstUser,
-  mockPrismaFirstFirstEmail,
+  mockPrismaFindFirstEmail,
   mockPrismaUpdateEmail,
 } from "../test/helpers.js";
+import { mockHonoContext, mockPrisma } from "../test/mocks.js";
 import { updateEmailHandler } from "./update_email.js";
+import type { Context } from "hono";
 
 describe("Update Email Handler", () => {
   beforeEach(() => {
@@ -37,7 +38,7 @@ describe("Update Email Handler", () => {
     mockHonoContext.req.param.mockReturnValue(emailId);
 
     mockPrismaFindFirstUser(userId);
-    mockPrismaFirstFirstEmail(emailId, userId, "DRAFT");
+    mockPrismaFindFirstEmail(emailId, userId, "DRAFT");
     mockPrismaUpdateEmail(
       emailId,
       userId,
@@ -47,7 +48,7 @@ describe("Update Email Handler", () => {
       "DRAFT",
     );
 
-    await updateEmailHandler(mockHonoContext as any);
+    await updateEmailHandler(mockHonoContext as unknown as Context);
 
     expect(mockPrisma.user.findFirst).toBeCalledWith({ where: { id: userId } });
     expect(mockPrisma.email.findFirst).toBeCalledWith({
@@ -75,7 +76,7 @@ describe("Update Email Handler", () => {
 
     mockPrisma.user.findFirst.mockResolvedValue(null);
 
-    await updateEmailHandler(mockHonoContext as any);
+    await updateEmailHandler(mockHonoContext as unknown as Context);
 
     expect(mockHonoContext.json).toBeCalledWith(
       {
@@ -97,7 +98,7 @@ describe("Update Email Handler", () => {
     mockPrismaFindFirstUser(userId);
     mockPrisma.email.findFirst.mockResolvedValue(null);
 
-    await updateEmailHandler(mockHonoContext as any);
+    await updateEmailHandler(mockHonoContext as unknown as Context);
 
     expect(mockHonoContext.json).toBeCalledWith(
       {
@@ -117,9 +118,9 @@ describe("Update Email Handler", () => {
     mockHonoContext.req.param.mockReturnValue(emailId);
 
     mockPrismaFindFirstUser(userId);
-    mockPrismaFirstFirstEmail(emailId, userId, "SCHEDULED");
+    mockPrismaFindFirstEmail(emailId, userId, "SCHEDULED");
 
-    await updateEmailHandler(mockHonoContext as any);
+    await updateEmailHandler(mockHonoContext as unknown as Context);
 
     expect(mockPrisma.user.findFirst).toBeCalledWith({ where: { id: userId } });
     expect(mockPrisma.email.findFirst).toBeCalledWith({
@@ -142,7 +143,7 @@ describe("Update Email Handler", () => {
     mockHonoContext.req.json.mockResolvedValue(body);
     mockHonoContext.req.param.mockReturnValue(emailId);
 
-    await updateEmailHandler(mockHonoContext as any);
+    await updateEmailHandler(mockHonoContext as unknown as Context);
 
     expect(mockHonoContext.json).toBeCalledWith(
       {
