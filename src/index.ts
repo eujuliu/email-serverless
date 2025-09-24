@@ -5,6 +5,7 @@ import { type JwtVariables, jwt } from "hono/jwt";
 import { secureHeaders } from "hono/secure-headers";
 import { pinoLogger } from "hono-pino";
 import { type Logger, pino } from "pino";
+import type { RedisClientType } from "redis";
 import { PrismaClient } from "../generated/prisma/index.js";
 import { initializeConfig } from "./config.js";
 import { createEmailHandler } from "./handlers/create_email.js";
@@ -58,7 +59,10 @@ async function main() {
 	const jwtMiddleware = jwt({
 		secret: JWT_SECRET,
 	});
-	const rateLimiterMiddleware = rateLimiter(config, redis as any);
+	const rateLimiterMiddleware = rateLimiter(
+		config,
+		redis as unknown as RedisClientType,
+	);
 
 	app.use(
 		pinoLogger({
