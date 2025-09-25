@@ -70,12 +70,7 @@ describe("Create Email Handler", () => {
 
 		await createEmailHandler(mockHonoContext as unknown as Context);
 
-		expect(mockHonoContext.json).toBeCalledWith(
-			{
-				error: "User not found",
-			},
-			404,
-		);
+		expect(mockHonoContext.json).toBeCalledWith(expect.any(Error), 404);
 	});
 
 	it("should return error if body don't fill schema", async () => {
@@ -88,11 +83,6 @@ describe("Create Email Handler", () => {
 
 		await createEmailHandler(mockHonoContext as unknown as Context);
 
-		expect(mockHonoContext.json).toBeCalledWith(
-			{
-				error: expect.any(String),
-			},
-			400,
-		);
+		expect(mockHonoContext.json).toBeCalledWith(expect.any(Error), 400);
 	});
 });

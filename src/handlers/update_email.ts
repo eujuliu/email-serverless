@@ -1,5 +1,11 @@
 import type { Context } from "hono";
 import z from "zod";
+import {
+	ConflictError,
+	InternalServerError,
+	NotFoundError,
+	ValidationError,
+} from "../errors/index.js";
 import type { Env, JwtClaims } from "../index.js";
 
 export const UpdateEmailRequest = z.object({
@@ -11,71 +17,58 @@ export const UpdateEmailRequest = z.object({
 });
 
 export async function updateEmailHandler(c: Context<Env>) {
-	const claims = c.get("jwtPayload") as JwtClaims;
-	const emailId = c.req.param("id");
-	const body = await c.req.json();
+	const logger = c.get("logger");
 
-	const result = UpdateEmailRequest.safeParse({
-		id: emailId,
-		...body,
-		...claims,
-	});
+	try {
+		const claims = c.get("jwtPayload") as JwtClaims;
+		const emailId = c.req.param("id");
+		const body = await c.req.json();
 
-	if (!result.success) {
-		return c.json(
-			{
-				error: result.error.message,
+		const result = UpdateEmailRequest.safeParse({
+			id: emailId,
+			...body,
+			...claims,
+		});
+
+		if (!result.success) {
+			const error = new ValidationError({});
+			return c.json(error, error.code);
+		}
+
+		const prisma = c.get("prisma");
+		const { id, audience, subject, html, userId } = result.data;
+
+		const exists = await prisma.user.findFirst({
+			where: {
+				id: userId,
 			},
-			400,
-		);
-	}
+		});
 
-	const { logger } = c.var;
-	const prisma = c.get("prisma");
-	const { id, audience, subject, html, userId } = result.data;
+		if (!exists) {
+			const error = new NotFoundError({ message: "User not found" });
+			return c.json(error, error.code);
+		}
 
-	const exists = await prisma.user.findFirst({
-		where: {
-			id: userId,
-		},
-	});
-
-	if (!exists) {
-		return c.json(
-			{
-				error: "User not found",
+		const email = await prisma.email.findFirst({
+			where: {
+				id,
+				userId,
 			},
-			404,
-		);
-	}
+		});
 
-	const email = await prisma.email.findFirst({
-		where: {
-			id,
-			userId,
-		},
-	});
+		if (!email) {
+			const error = new NotFoundError({ message: "Email not found" });
+			return c.json(error, error.code);
+		}
 
-	if (!email) {
-		return c.json(
-			{
-				error: "Email not found",
-			},
-			404,
-		);
-	}
+		if (email.status === "SCHEDULED") {
+			const error = new ConflictError({
+				message: "Cannot update a SCHEDULED email",
+			});
+			return c.json(error, error.code);
+		}
 
-	if (email.status === "SCHEDULED") {
-		return c.json(
-			{
-				error: "Cannot update a scheduled email",
-			},
-			400,
-		);
-	}
-
-	return await prisma.email
-		.update({
+		const updated = await prisma.email.update({
 			where: {
 				id: emailId,
 			},
@@ -84,12 +77,14 @@ export async function updateEmailHandler(c: Context<Env>) {
 				subject,
 				html,
 			},
-		})
-		.then((email) => {
-			return c.json(email, 200);
-		})
-		.catch((err) => {
-			logger.error((err as Error).message);
-			return c.json({ error: "Internal Server Error" }, 500);
 		});
+
+		return c.json(updated, 200);
+	} catch (err) {
+		logger.error((err as Error).message);
+
+		const error = new InternalServerError({});
+
+		return c.json(error, error.code);
+	}
 }

@@ -96,3 +96,21 @@ export function mockPrismaUpdateEmail(
 		status,
 	});
 }
+
+export function mockPrismaFindFirstTask(id: string, referenceId: string) {
+	mockPrisma.task.findFirst.mockResolvedValue({
+		id,
+		createdAt: new Date(),
+		updatedAt: new Date(),
+		cost: 10,
+		type: "email",
+		priority: 1,
+		userId: crypto.randomUUID(),
+		runAt: new Date(),
+		timezone: "",
+		idempotencyKey: "",
+		referenceId,
+		retries: 0,
+		status: "RUNNING",
+	});
+}

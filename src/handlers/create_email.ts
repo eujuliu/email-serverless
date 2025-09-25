@@ -1,5 +1,10 @@
 import type { Context } from "hono";
 import z from "zod";
+import {
+	InternalServerError,
+	NotFoundError,
+	ValidationError,
+} from "../errors/index.js";
 import type { Env, JwtClaims } from "../index.js";
 
 export const CreateEmailRequest = z.object({
@@ -11,51 +16,46 @@ export const CreateEmailRequest = z.object({
 
 export async function createEmailHandler(c: Context<Env>) {
 	const { logger } = c.var;
-	const prisma = c.get("prisma");
-	const claims = c.get("jwtPayload") as JwtClaims;
-	const body = await c.req.json();
-	const result = CreateEmailRequest.safeParse({ ...claims, ...body });
 
-	if (!result.success) {
-		return c.json(
-			{
-				error: result.error.message,
+	try {
+		const prisma = c.get("prisma");
+		const claims = c.get("jwtPayload") as JwtClaims;
+		const body = await c.req.json();
+		const result = CreateEmailRequest.safeParse({ ...claims, ...body });
+
+		if (!result.success) {
+			const error = new ValidationError({});
+			return c.json(error, error.code);
+		}
+
+		const { userId, subject, audience, html } = result.data;
+
+		const exists = await prisma.user.findFirst({
+			where: {
+				id: userId,
 			},
-			400,
-		);
-	}
+		});
 
-	const { userId, subject, audience, html } = result.data;
+		if (!exists) {
+			const error = new NotFoundError({ message: "User not found" });
+			return c.json(error, error.code);
+		}
 
-	const exists = await prisma.user.findFirst({
-		where: {
-			id: userId,
-		},
-	});
-
-	if (!exists) {
-		return c.json(
-			{
-				error: "User not found",
-			},
-			404,
-		);
-	}
-
-	return await prisma.email
-		.create({
+		const email = await prisma.email.create({
 			data: {
 				subject,
 				audience,
 				html,
 				userId,
 			},
-		})
-		.then((email) => {
-			return c.json(email, 201);
-		})
-		.catch((err) => {
-			logger.error((err as Error).message);
-			return c.json({ error: "Internal Server Error" }, 500);
 		});
+
+		return c.json(email, 201);
+	} catch (err) {
+		logger.error((err as Error).message);
+
+		const error = new InternalServerError({});
+
+		return c.json(error, error.code);
+	}
 }

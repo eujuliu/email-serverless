@@ -1,5 +1,10 @@
 import type { Context } from "hono";
 import z from "zod";
+import {
+	InternalServerError,
+	NotFoundError,
+	ValidationError,
+} from "../errors/index.js";
 import type { Env, JwtClaims } from "../index.js";
 
 export const GetEmailRequest = z.object({
@@ -8,56 +13,54 @@ export const GetEmailRequest = z.object({
 });
 
 export async function getEmailHandler(c: Context<Env>) {
-	const claims = c.get("jwtPayload") as JwtClaims;
-	const emailId = c.req.param("id");
+	const logger = c.get("logger");
 
-	const result = GetEmailRequest.safeParse({
-		id: emailId,
-		...claims,
-	});
+	try {
+		const claims = c.get("jwtPayload") as JwtClaims;
+		const emailId = c.req.param("id");
 
-	if (!result.success) {
-		return c.json(
-			{
-				error: result.error.message,
+		const result = GetEmailRequest.safeParse({
+			id: emailId,
+			...claims,
+		});
+
+		if (!result.success) {
+			const error = new ValidationError({});
+			return c.json(error, error.code);
+		}
+
+		const prisma = c.get("prisma");
+		const { id, userId } = result.data;
+
+		const exists = await prisma.user.findFirst({
+			where: {
+				id: userId,
 			},
-			400,
-		);
-	}
+		});
 
-	const prisma = c.get("prisma");
-	const { id, userId } = result.data;
+		if (!exists) {
+			const error = new NotFoundError({ message: "User not found" });
+			return c.json(error, error.code);
+		}
 
-	const exists = await prisma.user.findFirst({
-		where: {
-			id: userId,
-		},
-	});
-
-	if (!exists) {
-		return c.json(
-			{
-				error: "User not found",
+		const email = await prisma.email.findFirst({
+			where: {
+				id,
+				userId: userId,
 			},
-			404,
-		);
+		});
+
+		if (!email) {
+			const error = new NotFoundError({ message: "Email not found" });
+			return c.json(error, error.code);
+		}
+
+		return c.json(email, 200);
+	} catch (err) {
+		logger.error((err as Error).message);
+
+		const error = new InternalServerError({});
+
+		return c.json(error, error.code);
 	}
-
-	const email = await prisma.email.findFirst({
-		where: {
-			id,
-			userId: userId,
-		},
-	});
-
-	if (!email) {
-		return c.json(
-			{
-				error: "Email not found",
-			},
-			404,
-		);
-	}
-
-	return c.json(email, 200);
 }

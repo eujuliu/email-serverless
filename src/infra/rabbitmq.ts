@@ -64,20 +64,16 @@ export async function consume(
 	channel: amqp.Channel,
 	queue: string,
 	handler: (data: Record<string, string | number>) => Promise<void>,
-	onError: (
-		data: Record<string, string | number>,
-		err: Error,
-	) => Promise<boolean>,
 ) {
-	return await channel.consume(queue, async (msg) => {
+	await channel.consume(queue, async (msg) => {
 		if (msg) {
-			const data = JSON.parse(msg.content.toString());
 			try {
+				const data = JSON.parse(msg.content.toString());
 				await handler(data);
+
 				channel.ack(msg);
-			} catch (err) {
-				const ack = await onError(data, err as Error);
-				channel.nack(msg, false, ack);
+			} catch {
+				channel.nack(msg, false, false);
 			}
 		}
 	});

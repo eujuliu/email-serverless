@@ -78,12 +78,7 @@ describe("Update Email Handler", () => {
 
 		await updateEmailHandler(mockHonoContext as unknown as Context);
 
-		expect(mockHonoContext.json).toBeCalledWith(
-			{
-				error: "User not found",
-			},
-			404,
-		);
+		expect(mockHonoContext.json).toBeCalledWith(expect.any(Error), 404);
 	});
 
 	it("should return error if email not exists", async () => {
@@ -100,12 +95,7 @@ describe("Update Email Handler", () => {
 
 		await updateEmailHandler(mockHonoContext as unknown as Context);
 
-		expect(mockHonoContext.json).toBeCalledWith(
-			{
-				error: "Email not found",
-			},
-			404,
-		);
+		expect(mockHonoContext.json).toBeCalledWith(expect.any(Error), 404);
 	});
 
 	it("should return error if status is SCHEDULED", async () => {
@@ -126,12 +116,7 @@ describe("Update Email Handler", () => {
 		expect(mockPrisma.email.findFirst).toBeCalledWith({
 			where: { id: emailId, userId },
 		});
-		expect(mockHonoContext.json).toBeCalledWith(
-			{
-				error: "Cannot update a scheduled email",
-			},
-			400,
-		);
+		expect(mockHonoContext.json).toBeCalledWith(expect.any(Error), 409);
 	});
 
 	it("should return error if body don't fill schema", async () => {
@@ -145,11 +130,6 @@ describe("Update Email Handler", () => {
 
 		await updateEmailHandler(mockHonoContext as unknown as Context);
 
-		expect(mockHonoContext.json).toBeCalledWith(
-			{
-				error: expect.any(String),
-			},
-			400,
-		);
+		expect(mockHonoContext.json).toBeCalledWith(expect.any(Error), 400);
 	});
 });

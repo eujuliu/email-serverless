@@ -1,6 +1,8 @@
 import { pino } from "pino";
 import { vi } from "vitest";
 import { PrismaClient } from "../../generated/prisma/index.js";
+import { initializeConfig } from "../config.js";
+import { initializeRabbitMQ } from "../infra/rabbitmq.js";
 
 vi.mock("pino", () => ({
 	pino: vi.fn().mockReturnValue({
@@ -9,34 +11,13 @@ vi.mock("pino", () => ({
 	}),
 }));
 
-vi.mock("../config.ts", () => ({
+vi.mock("../config", () => ({
 	initializeConfig: vi.fn().mockReturnValue({
-		PORT: 3000,
+		EMAIL_SMTP_HOST: "",
 		NODE_ENV: "debug",
-		JWT_SECRET: "123",
-
-		POSTGRES_USER: "local_user",
-		POSTGRES_PASSWORD: "local_password",
-		POSTGRES_DB: "taskscheduler",
-		POSTGRES_HOST: "postgres",
-		POSTGRES_PORT: 5432,
-
-		REDIS_HOST: "redis",
-		REDIS_PORT: "6379",
-
-		RABBITMQ_DEFAULT_USER: "local_user",
-		RABBITMQ_DEFAULT_PASS: "local_password",
-		RABBITMQ_PORT: 5672,
-		RABBITMQ_HOST: "rabbitmq",
-		RABBITMQ_CONNECTION_STRING: "",
-
-		EMAIL_SMTP_HOST: "mailcatcher",
-		EMAIL_SMTP_PORT: 465,
-		EMAIL_HTTP_HOST: "mailcatcher",
-		EMAIL_HTTP_PORT: 1080,
-		EMAIL_USER: "nodemailer",
+		EMAIL_USER: "",
 		EMAIL_PASSWORD: "",
-		EMAIL_FROM: "test@email.com",
+		EMAIL_FROM: "",
 	}),
 }));
 
@@ -51,6 +32,7 @@ vi.mock("../../generated/prisma/index.js", () => ({
 			count: vi.fn(),
 		},
 		task: { findFirst: vi.fn() },
+		error: { createMany: vi.fn() },
 
 		$disconnect: vi.fn(),
 	}),
@@ -69,7 +51,7 @@ vi.mock("../infra/rabbitmq", () => ({
 	consume: vi.fn().mockReturnValue(vi.fn()),
 }));
 
-vi.mock("../infra/redis.ts", () => ({
+vi.mock("../infra/redis", () => ({
 	initializeRedis: vi.fn().mockReturnValue({
 		hGetAll: vi.fn(),
 		multi: vi.fn(() => ({
@@ -82,7 +64,10 @@ vi.mock("../infra/redis.ts", () => ({
 
 vi.mock("nodemailer", () => ({
 	createTransport: vi.fn().mockReturnValue({
-		sendMail: vi.fn(),
+		sendMail: vi.fn().mockReturnValue({
+			rejected: null,
+			rejectedErrors: null,
+		}),
 	}),
 }));
 
@@ -99,4 +84,10 @@ export const mockHonoContext = {
 	text: vi.fn(),
 };
 
-export const mockPrisma = vi.mockObject(new PrismaClient());
+export const mockPrisma = vi.mockObject(
+	new PrismaClient({ errorFormat: "minimal" }),
+);
+
+export const mockRabbitMq = vi.mockObject(
+	await initializeRabbitMQ(pino(), initializeConfig(pino())),
+);

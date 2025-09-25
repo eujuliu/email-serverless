@@ -38,7 +38,9 @@ async function main() {
 
 	logger.level = NODE_ENV.match(/prod/) ? "info" : "debug";
 
-	const prisma = new PrismaClient();
+	const prisma = new PrismaClient({
+		errorFormat: "minimal",
+	});
 	const redis = await initializeRedis(logger, config);
 	const rabbitmq = await initializeRabbitMQ(logger, config);
 

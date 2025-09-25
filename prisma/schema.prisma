@@ -26,6 +26,7 @@ model User {
 
   emails         Email[]
   tasks          Task[]
+  errors          Error[]
 
   @@index([email, username])
   @@map("users")
@@ -69,6 +70,21 @@ model Task {
   @@index([userId])
   @@map("tasks")
 }
+
+model Error {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  type        String   @db.VarChar(50)
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: NoAction)
+  reason      String   @db.VarChar(320)
+  referenceId String   @db.VarChar(128) @map("reference_id")
+
+  @@index([userId])
+  @@map("errors")
+}
+
 
 enum TaskStatus {
   PENDING

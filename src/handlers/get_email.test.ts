@@ -49,12 +49,7 @@ describe("Get Email Handler", () => {
 
 		await getEmailHandler(mockHonoContext as unknown as Context);
 
-		expect(mockHonoContext.json).toBeCalledWith(
-			{
-				error: "User not found",
-			},
-			404,
-		);
+		expect(mockHonoContext.json).toBeCalledWith(expect.any(Error), 404);
 	});
 
 	it("should return error if email not exists", async () => {
@@ -65,11 +60,6 @@ describe("Get Email Handler", () => {
 
 		await getEmailHandler(mockHonoContext as unknown as Context);
 
-		expect(mockHonoContext.json).toBeCalledWith(
-			{
-				error: "Email not found",
-			},
-			404,
-		);
+		expect(mockHonoContext.json).toBeCalledWith(expect.any(Error), 404);
 	});
 });

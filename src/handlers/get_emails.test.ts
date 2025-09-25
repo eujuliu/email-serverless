@@ -62,11 +62,6 @@ describe("Get Emails Handler", () => {
 
 		await getEmailsHandler(mockHonoContext as unknown as Context);
 
-		expect(mockHonoContext.json).toBeCalledWith(
-			{
-				error: "User not found",
-			},
-			404,
-		);
+		expect(mockHonoContext.json).toBeCalledWith(expect.any(Error), 404);
 	});
 });
