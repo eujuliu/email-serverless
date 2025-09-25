@@ -8,25 +8,20 @@ import {
 } from "../errors/index.js";
 import type { Env, JwtClaims } from "../index.js";
 
-export const UpdateEmailRequest = z.object({
+export const DeleteEmailHandler = z.object({
   id: z.uuidv4().nonoptional(),
-  audience: z.array(z.string()).min(1).optional(),
-  subject: z.string().min(4).optional(),
-  html: z.string().min(1).optional(),
   userId: z.uuidv4().nonoptional(),
 });
 
-export async function updateEmailHandler(c: Context<Env>) {
+export async function deleteEmailHandler(c: Context<Env>) {
   const logger = c.get("logger");
 
   try {
     const claims = c.get("jwtPayload") as JwtClaims;
     const emailId = c.req.param("id");
-    const body = await c.req.json();
 
-    const result = UpdateEmailRequest.safeParse({
+    const result = DeleteEmailHandler.safeParse({
       id: emailId,
-      ...body,
       ...claims,
     });
 
@@ -36,7 +31,7 @@ export async function updateEmailHandler(c: Context<Env>) {
     }
 
     const prisma = c.get("prisma");
-    const { id, audience, subject, html, userId } = result.data;
+    const { id, userId } = result.data;
 
     const exists = await prisma.user.findFirst({
       where: {
@@ -63,23 +58,19 @@ export async function updateEmailHandler(c: Context<Env>) {
 
     if (email.status === "SCHEDULED") {
       const error = new ConflictError({
-        message: "Cannot update a SCHEDULED email",
+        message: "Cannot delete a SCHEDULED email",
       });
       return c.json(error, error.code);
     }
 
-    const updated = await prisma.email.update({
+    await prisma.email.delete({
       where: {
-        id: emailId,
-      },
-      data: {
-        audience,
-        subject,
-        html,
+        id,
+        userId,
       },
     });
 
-    return c.json(updated, 200);
+    return c.body(null, 204);
   } catch (err) {
     logger.error((err as Error).message);
 
