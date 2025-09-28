@@ -43,7 +43,7 @@ services:
   email-worker:
     build:
       context: .
-      dockerfile: Dockerfile.development
+      dockerfile: Dockerfile.node
     restart: unless-stopped
     container_name: app
     env_file: ./.env.docker

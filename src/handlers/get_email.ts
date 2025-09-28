@@ -1,66 +1,83 @@
-import type { Context } from "hono";
 import z from "zod";
+import type { PrismaClient } from "../../generated/prisma/index.js";
 import {
-	InternalServerError,
-	NotFoundError,
-	ValidationError,
+  InternalServerError,
+  NotFoundError,
+  ValidationError,
 } from "../errors/index.js";
-import type { Env, JwtClaims } from "../index.js";
+import { logger } from "../infra/logger.js";
+import { minifyZodError } from "../helpers.js";
 
 export const GetEmailRequest = z.object({
-	id: z.uuidv4().nonoptional(),
-	userId: z.uuidv4().nonoptional(),
+  id: z.uuidv4().nonoptional(),
+  userId: z.uuidv4().nonoptional(),
 });
 
-export async function getEmailHandler(c: Context<Env>) {
-	const logger = c.get("logger");
+export async function getEmailHandler(
+  data: z.infer<typeof GetEmailRequest>,
+  prisma: PrismaClient,
+) {
+  try {
+    logger.info("get email handler started...");
+    const result = GetEmailRequest.safeParse(data);
 
-	try {
-		const claims = c.get("jwtPayload") as JwtClaims;
-		const emailId = c.req.param("id");
+    if (!result.success) {
+      const error = new ValidationError({
+        message: minifyZodError(result.error),
+      });
 
-		const result = GetEmailRequest.safeParse({
-			id: emailId,
-			...claims,
-		});
+      logger.error(error.message);
 
-		if (!result.success) {
-			const error = new ValidationError({});
-			return c.json(error, error.code);
-		}
+      return {
+        result: error,
+        code: error.code,
+      };
+    }
 
-		const prisma = c.get("prisma");
-		const { id, userId } = result.data;
+    const { id, userId } = result.data;
 
-		const exists = await prisma.user.findFirst({
-			where: {
-				id: userId,
-			},
-		});
+    const exists = await prisma.user.findFirst({
+      where: {
+        id: userId,
+      },
+    });
 
-		if (!exists) {
-			const error = new NotFoundError({ message: "User not found" });
-			return c.json(error, error.code);
-		}
+    if (!exists) {
+      const error = new NotFoundError({ message: "User not found" });
+      return {
+        result: error,
+        code: error.code,
+      };
+    }
 
-		const email = await prisma.email.findFirst({
-			where: {
-				id,
-				userId: userId,
-			},
-		});
+    const email = await prisma.email.findFirst({
+      where: {
+        id,
+        userId: userId,
+      },
+    });
 
-		if (!email) {
-			const error = new NotFoundError({ message: "Email not found" });
-			return c.json(error, error.code);
-		}
+    if (!email) {
+      const error = new NotFoundError({ message: "Email not found" });
+      return {
+        result: error,
+        code: error.code,
+      };
+    }
 
-		return c.json(email, 200);
-	} catch (err) {
-		logger.error((err as Error).message);
+    logger.info("get email handler finished...");
+    return {
+      result: email,
+      code: 200,
+    };
+  } catch (err) {
+    logger.error((err as Error).message);
 
-		const error = new InternalServerError({});
+    const error = new InternalServerError({});
 
-		return c.json(error, error.code);
-	}
+    return {
+      result: error,
+      code: error.code,
+    };
+  }
 }

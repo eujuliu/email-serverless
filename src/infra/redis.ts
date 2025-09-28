@@ -1,11 +1,8 @@
-import type pino from "pino";
 import { createClient } from "redis";
 import type { Config } from "../config.js";
+import { logger } from "./logger.js";
 
-export async function initializeRedis(
-	logger: pino.Logger<never, boolean>,
-	config: Config,
-) {
+export async function createRedis(config: Config) {
 	const client = createClient({
 		username: config.REDIS_USERNAME,
 		password: config.REDIS_PASSWORD,

@@ -1,81 +1,92 @@
-import type { Context } from "hono";
 import z from "zod";
+import type { PrismaClient } from "../../generated/prisma/index.js";
 import {
-	InternalServerError,
-	NotFoundError,
-	ValidationError,
+  InternalServerError,
+  NotFoundError,
+  ValidationError,
 } from "../errors/index.js";
-import type { Env, JwtClaims } from "../index.js";
+import { logger } from "../infra/logger.js";
+import { minifyZodError } from "../helpers.js";
 
 export const GetEmailsRequest = z.object({
-	userId: z.uuidv4().nonoptional(),
-	offset: z.preprocess((val) => Number(val), z.number()).default(0),
-	limit: z
-		.preprocess((val) => Number(val), z.number().min(10).max(100))
-		.default(10),
-	orderBy: z.enum(["asc", "desc"]).default("asc"),
+  userId: z.uuidv4().nonoptional(),
+  offset: z.preprocess((val) => Number(val), z.number()).default(0),
+  limit: z
+    .preprocess((val) => Number(val), z.number().min(10).max(100))
+    .default(10),
+  orderBy: z.enum(["asc", "desc"]).default("asc"),
 });
 
-export async function getEmailsHandler(c: Context<Env>) {
-	const logger = c.get("logger");
+export async function getEmailsHandler(
+  data: z.infer<typeof GetEmailsRequest>,
+  prisma: PrismaClient,
+) {
+  try {
+    logger.info("get emails handler started...");
+    const result = GetEmailsRequest.safeParse(data);
 
-	try {
-		const claims = c.get("jwtPayload") as JwtClaims;
-		const result = GetEmailsRequest.safeParse({
-			...claims,
-			offset: c.req.param("offset"),
-			limit: c.req.param("limit"),
-			orderBy: c.req.param("orderBy"),
-		});
+    if (!result.success) {
+      const error = new ValidationError({
+        message: minifyZodError(result.error),
+      });
 
-		if (!result.success) {
-			const error = new ValidationError({});
-			return c.json(error, error.code);
-		}
+      logger.error(error.message);
 
-		const prisma = c.get("prisma");
-		const { userId, offset, limit, orderBy } = result.data;
+      return {
+        result: error,
+        code: error.code,
+      };
+    }
 
-		const exists = await prisma.user.findFirst({
-			where: {
-				id: userId,
-			},
-		});
+    const { userId, offset, limit, orderBy } = result.data;
 
-		if (!exists) {
-			const error = new NotFoundError({ message: "User not found" });
-			return c.json(error, error.code);
-		}
+    const exists = await prisma.user.findFirst({
+      where: {
+        id: userId,
+      },
+    });
 
-		const emails = await prisma.email.findMany({
-			where: {
-				userId,
-			},
-			skip: offset,
-			take: limit,
-			orderBy: {
-				updatedAt: orderBy,
-			},
-		});
-		const count = await prisma.email.count({ where: { userId } });
+    if (!exists) {
+      const error = new NotFoundError({ message: "User not found" });
+      return {
+        result: error,
+        code: error.code,
+      };
+    }
 
-		return c.json(
-			{
-				emails,
-				pagination: {
-					offset,
-					limit,
-					orderBy,
-					total: count,
-				},
-			},
-			200,
-		);
-	} catch (err) {
-		logger.error((err as Error).message);
+    const emails = await prisma.email.findMany({
+      where: {
+        userId,
+      },
+      skip: offset,
+      take: limit,
+      orderBy: {
+        updatedAt: orderBy,
+      },
+    });
+    const count = await prisma.email.count({ where: { userId } });
 
-		const error = new InternalServerError({});
+    logger.info("get emails handler finished...");
+    return {
+      result: {
+        emails,
+        pagination: {
+          offset,
+          limit,
+          orderBy,
+          total: count,
+        },
+      },
+      code: 200,
+    };
+  } catch (err) {
+    logger.error((err as Error).message);
 
-		return c.json(error, error.code);
-	}
+    const error = new InternalServerError({});
+
+    return {
+      result: error,
+      code: error.code,
+    };
+  }
 }

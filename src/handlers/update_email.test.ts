@@ -1,28 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import "../test/mocks.js";
-import type { Context } from "hono";
 import {
 	mockPrismaFindFirstEmail,
 	mockPrismaFindFirstUser,
 	mockPrismaUpdateEmail,
 } from "../test/helpers.js";
-import { mockHonoContext, mockPrisma } from "../test/mocks.js";
+import { mockPrisma } from "../test/mocks.js";
 import { updateEmailHandler } from "./update_email.js";
 
 describe("Update Email Handler", () => {
 	beforeEach(() => {
 		vi.restoreAllMocks();
-
-		mockHonoContext.get.mockImplementation((key: "prisma" | "jwtPayload") => {
-			const values = {
-				prisma: mockPrisma,
-				jwtPayload: {
-					userId,
-				},
-			};
-
-			return values[key];
-		});
 	});
 
 	const userId = "e010b871-13d1-491c-8840-54cb93cbf7ac";
@@ -33,9 +21,9 @@ describe("Update Email Handler", () => {
 			audience: ["test@example.com", "test2@example.com", "test2@example.com"],
 			subject: "Test Subject 1",
 			html: "<p>Test HTML content</p>",
+			id: emailId,
+			userId,
 		};
-		mockHonoContext.req.json.mockResolvedValue(body);
-		mockHonoContext.req.param.mockReturnValue(emailId);
 
 		mockPrismaFindFirstUser(userId);
 		mockPrismaFindFirstEmail(emailId, userId, "DRAFT");
@@ -48,7 +36,7 @@ describe("Update Email Handler", () => {
 			"DRAFT",
 		);
 
-		await updateEmailHandler(mockHonoContext as unknown as Context);
+		const result = await updateEmailHandler(body, mockPrisma);
 
 		expect(mockPrisma.user.findFirst).toBeCalledWith({ where: { id: userId } });
 		expect(mockPrisma.email.findFirst).toBeCalledWith({
@@ -57,12 +45,18 @@ describe("Update Email Handler", () => {
 		expect(mockPrisma.email.update).toBeCalledWith({
 			where: {
 				id: emailId,
+				userId,
 			},
 			data: {
 				...body,
+				id: undefined,
+				userId: undefined,
 			},
 		});
-		expect(mockHonoContext.json).toBeCalledWith(expect.any(Object), 200);
+		expect(result).toStrictEqual({
+			result: expect.any(Object),
+			code: 200,
+		});
 	});
 
 	it("should return error if user not exists", async () => {
@@ -70,15 +64,18 @@ describe("Update Email Handler", () => {
 			audience: ["test@example.com", "test2@example.com"],
 			subject: "Test Subject",
 			html: "<p>Test HTML content</p>",
+			id: emailId,
+			userId,
 		};
-		mockHonoContext.req.json.mockResolvedValue(body);
-		mockHonoContext.req.param.mockReturnValue(emailId);
 
 		mockPrisma.user.findFirst.mockResolvedValue(null);
 
-		await updateEmailHandler(mockHonoContext as unknown as Context);
+		const result = await updateEmailHandler(body, mockPrisma);
 
-		expect(mockHonoContext.json).toBeCalledWith(expect.any(Error), 404);
+		expect(result).toStrictEqual({
+			result: expect.any(Error),
+			code: 404,
+		});
 	});
 
 	it("should return error if email not exists", async () => {
@@ -86,16 +83,19 @@ describe("Update Email Handler", () => {
 			audience: ["test@example.com", "test2@example.com"],
 			subject: "Test Subject",
 			html: "<p>Test HTML content</p>",
+			id: emailId,
+			userId,
 		};
-		mockHonoContext.req.json.mockResolvedValue(body);
-		mockHonoContext.req.param.mockReturnValue(emailId);
 
 		mockPrismaFindFirstUser(userId);
 		mockPrisma.email.findFirst.mockResolvedValue(null);
 
-		await updateEmailHandler(mockHonoContext as unknown as Context);
+		const result = await updateEmailHandler(body, mockPrisma);
 
-		expect(mockHonoContext.json).toBeCalledWith(expect.any(Error), 404);
+		expect(result).toStrictEqual({
+			result: expect.any(Error),
+			code: 404,
+		});
 	});
 
 	it("should return error if status is SCHEDULED", async () => {
@@ -103,20 +103,23 @@ describe("Update Email Handler", () => {
 			audience: ["test@example.com", "test2@example.com", "test2@example.com"],
 			subject: "Test Subject 1",
 			html: "<p>Test HTML content</p>",
+			id: emailId,
+			userId,
 		};
-		mockHonoContext.req.json.mockResolvedValue(body);
-		mockHonoContext.req.param.mockReturnValue(emailId);
 
 		mockPrismaFindFirstUser(userId);
 		mockPrismaFindFirstEmail(emailId, userId, "SCHEDULED");
 
-		await updateEmailHandler(mockHonoContext as unknown as Context);
+		const result = await updateEmailHandler(body, mockPrisma);
 
 		expect(mockPrisma.user.findFirst).toBeCalledWith({ where: { id: userId } });
 		expect(mockPrisma.email.findFirst).toBeCalledWith({
 			where: { id: emailId, userId },
 		});
-		expect(mockHonoContext.json).toBeCalledWith(expect.any(Error), 409);
+		expect(result).toStrictEqual({
+			result: expect.any(Error),
+			code: 409,
+		});
 	});
 
 	it("should return error if body don't fill schema", async () => {
@@ -124,12 +127,15 @@ describe("Update Email Handler", () => {
 			audience: ["test@example.com", "test2@example.com"],
 			subject: "",
 			html: "<p>Test HTML content</p>",
+			id: emailId,
+			userId,
 		};
-		mockHonoContext.req.json.mockResolvedValue(body);
-		mockHonoContext.req.param.mockReturnValue(emailId);
 
-		await updateEmailHandler(mockHonoContext as unknown as Context);
+		const result = await updateEmailHandler(body, mockPrisma);
 
-		expect(mockHonoContext.json).toBeCalledWith(expect.any(Error), 400);
+		expect(result).toStrictEqual({
+			result: expect.any(Error),
+			code: 400,
+		});
 	});
 });

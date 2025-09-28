@@ -1,41 +1,42 @@
-import type { Context } from "hono";
 import z from "zod";
+import type { PrismaClient } from "../../generated/prisma/index.js";
 import {
   ConflictError,
   InternalServerError,
   NotFoundError,
   ValidationError,
 } from "../errors/index.js";
-import type { Env, JwtClaims } from "../index.js";
+import { logger } from "../infra/logger.js";
+import { minifyZodError } from "../helpers.js";
 
 export const UpdateEmailRequest = z.object({
   id: z.uuidv4().nonoptional(),
-  audience: z.array(z.string()).min(1).optional(),
+  audience: z.array(z.email()).min(1).optional(),
   subject: z.string().min(4).optional(),
   html: z.string().min(1).optional(),
   userId: z.uuidv4().nonoptional(),
 });
 
-export async function updateEmailHandler(c: Context<Env>) {
-  const logger = c.get("logger");
-
+export async function updateEmailHandler(
+  data: z.infer<typeof UpdateEmailRequest>,
+  prisma: PrismaClient,
+) {
   try {
-    const claims = c.get("jwtPayload") as JwtClaims;
-    const emailId = c.req.param("id");
-    const body = await c.req.json();
-
-    const result = UpdateEmailRequest.safeParse({
-      id: emailId,
-      ...body,
-      ...claims,
-    });
+    const result = UpdateEmailRequest.safeParse(data);
 
     if (!result.success) {
-      const error = new ValidationError({});
-      return c.json(error, error.code);
+      const error = new ValidationError({
+        message: minifyZodError(result.error),
+      });
+
+      logger.error(error.message);
+
+      return {
+        result: error,
+        code: error.code,
+      };
     }
 
-    const prisma = c.get("prisma");
     const { id, audience, subject, html, userId } = result.data;
 
     const exists = await prisma.user.findFirst({
@@ -46,7 +47,10 @@ export async function updateEmailHandler(c: Context<Env>) {
 
     if (!exists) {
       const error = new NotFoundError({ message: "User not found" });
-      return c.json(error, error.code);
+      return {
+        result: error,
+        code: error.code,
+      };
     }
 
     const email = await prisma.email.findFirst({
@@ -58,19 +62,27 @@ export async function updateEmailHandler(c: Context<Env>) {
 
     if (!email) {
       const error = new NotFoundError({ message: "Email not found" });
-      return c.json(error, error.code);
+      return {
+        result: error,
+        code: error.code,
+      };
     }
 
     if (email.status === "SCHEDULED") {
       const error = new ConflictError({
         message: "Cannot update a SCHEDULED email",
       });
-      return c.json(error, error.code);
+
+      return {
+        result: error,
+        code: error.code,
+      };
     }
 
     const updated = await prisma.email.update({
       where: {
-        id: emailId,
+        id,
+        userId,
       },
       data: {
         audience,
@@ -79,12 +91,18 @@ export async function updateEmailHandler(c: Context<Env>) {
       },
     });
 
-    return c.json(updated, 200);
+    return {
+      result: updated,
+      code: 200,
+    };
   } catch (err) {
     logger.error((err as Error).message);
 
     const error = new InternalServerError({});
 
-    return c.json(error, error.code);
+    return {
+      result: error,
+      code: error.code,
+    };
   }
 }
