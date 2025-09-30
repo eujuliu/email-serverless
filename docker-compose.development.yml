@@ -43,7 +43,7 @@ services:
   email-worker:
     build:
       context: .
-      dockerfile: Dockerfile.development
+      dockerfile: Dockerfile.node
       platforms:
         - linux/amd64
     restart: unless-stopped

@@ -14,7 +14,7 @@
     "lint:check": "exec biome check --write",
     "test": "vitest",
     "prepare": "husky",
-    "pre-commit": "lint-staged"
+    "precommit": "lint-staged"
   },
   "lint-staged": {
     "*": "pnpm run lint && pnpm run test"
