@@ -1,12 +1,13 @@
-import type { PrismaClient } from "@prisma/client/extension";
+import type { PoolClient } from "pg";
 import z from "zod";
 import {
   InternalServerError,
   NotFoundError,
   ValidationError,
 } from "../errors/index.js";
-import { logger } from "../infra/logger.js";
 import { minifyZodError } from "../helpers.js";
+import { create, findFirst } from "../infra/db.js";
+import { logger } from "../infra/logger.js";
 
 export const CreateEmailRequest = z.object({
   audience: z.array(z.email()).min(1),
@@ -17,7 +18,7 @@ export const CreateEmailRequest = z.object({
 
 export async function createEmailHandler(
   request: z.infer<typeof CreateEmailRequest>,
-  prisma: PrismaClient,
+  db: PoolClient,
 ) {
   try {
     logger.info("create email handler started...");
@@ -38,11 +39,7 @@ export async function createEmailHandler(
 
     const { userId, subject, audience, html } = result.data;
 
-    const exists = await prisma.user.findFirst({
-      where: {
-        id: userId,
-      },
-    });
+    const exists = await findFirst(db, "users", { id: userId });
 
     if (!exists) {
       const error = new NotFoundError({ message: "User not found" });
@@ -52,13 +49,11 @@ export async function createEmailHandler(
       };
     }
 
-    const email = await prisma.email.create({
-      data: {
-        subject,
-        audience,
-        html,
-        userId,
-      },
+    const email = await create(db, "emails", {
+      subject,
+      audience,
+      html,
+      user_id: userId,
     });
 
     logger.info("create email handler finished...");

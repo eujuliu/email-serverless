@@ -62,7 +62,7 @@ export async function consume(
   queue: string,
   handler: (data: Record<string, string | number>) => Promise<void>,
 ) {
-  await channel.consume(queue, async (msg) => {
+  return await channel.consume(queue, async (msg) => {
     if (msg) {
       try {
         const data = JSON.parse(msg.content.toString());

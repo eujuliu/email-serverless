@@ -1,109 +1,115 @@
 import "../test/mocks.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTransporter } from "../infra/email.js";
-import {
-	mockPrismaFindFirstEmail,
-	mockPrismaFindFirstTask,
-} from "../test/helpers.js";
-import { mockConfig, mockPrisma } from "../test/mocks.js";
+import { mockDBFindFirstEmail, mockDBFindFirstTask } from "../test/helpers.js";
+import { mockConfig, mockDBFn } from "../test/mocks.js";
 import { sendEmailsHandler } from "./send_emails.js";
 
 describe("Send Emails", () => {
-	beforeEach(() => {
-		vi.restoreAllMocks();
-	});
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
 
-	const taskId = crypto.randomUUID();
-	const emailId = crypto.randomUUID();
-	const userId = crypto.randomUUID();
-	const mockTransporter = vi.mockObject(createTransporter(mockConfig));
+  const taskId = crypto.randomUUID();
+  const emailId = crypto.randomUUID();
+  const userId = crypto.randomUUID();
+  const mockTransporter = vi.mockObject(createTransporter(mockConfig));
 
-	const data = {
-		id: taskId,
-		reference_id: emailId,
-		type: "email" as "email",
-		status: "RUNNING" as "RUNNING",
-		userId,
-		from: "email@test.com",
-	};
+  const data = {
+    id: taskId,
+    reference_id: emailId,
+    type: "email" as "email",
+    status: "RUNNING" as "RUNNING",
+    userId,
+    from: "email@test.com",
+  };
 
-	it("should send email", async () => {
-		mockPrismaFindFirstTask(taskId, emailId);
-		mockPrismaFindFirstEmail(emailId, userId, "DRAFT");
+  it("should send email", async () => {
+    mockDBFindFirstTask(taskId, emailId, userId);
+    mockDBFindFirstEmail(emailId, userId, "DRAFT");
 
-		const result = await sendEmailsHandler(data, mockPrisma, mockTransporter);
-		expect(mockTransporter.sendMail).toHaveBeenCalledWith({
-			from: data.from,
-			to: [""],
-			subject: "",
-			html: "",
-		});
-		expect(mockPrisma.task.findFirst).toHaveBeenCalledWith({
-			where: { id: data.id, referenceId: data.reference_id },
-		});
-		expect(mockPrisma.email.findFirst).toHaveBeenCalledWith({
-			where: { id: data.reference_id },
-		});
-		expect(result).toStrictEqual({ id: taskId, status: "COMPLETED" });
-	});
+    const result = await sendEmailsHandler(
+      data,
+      mockDBFn.createDatabase(),
+      mockTransporter,
+    );
 
-	it("should handle task not found error", async () => {
-		mockPrisma.task.findFirst.mockResolvedValue(null);
-		mockPrisma.error.createMany.mockResolvedValue({ count: 1 });
+    expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "tasks", {
+      id: taskId,
+    });
+    expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "emails", {
+      id: emailId,
+      user_id: userId,
+    });
+    expect(mockTransporter.sendMail).toHaveBeenCalledWith({
+      from: data.from,
+      to: [""],
+      subject: "",
+      html: "",
+    });
+    expect(result).toStrictEqual({ id: taskId, status: "COMPLETED" });
+  });
 
-		const result = await sendEmailsHandler(data, mockPrisma, mockTransporter);
+  it("should handle task not found error", async () => {
+    mockDBFn.findFirst.mockResolvedValue(null);
+    mockDBFn.createMany.mockResolvedValue({ count: 1 });
 
-		expect(mockPrisma.task.findFirst).toHaveBeenCalledWith({
-			where: { id: data.id, referenceId: data.reference_id },
-		});
-		expect(mockPrisma.error.createMany).toHaveBeenCalledWith({
-			data: [
-				{
-					reason: "Task not found",
-					type: "email",
-					referenceId: data.id,
-					userId: data.userId,
-				},
-			],
-			skipDuplicates: true,
-		});
-		expect(result).toStrictEqual({
-			id: data.id,
-			status: "FAILED",
-			reason: expect.any(String),
-			refund: expect.any(Boolean),
-		});
-	});
+    const result = await sendEmailsHandler(
+      data,
+      mockDBFn.createDatabase(),
+      mockTransporter,
+    );
 
-	it("should handle email not found error", async () => {
-		mockPrismaFindFirstTask(taskId, emailId);
-		mockPrisma.email.findFirst.mockResolvedValue(null);
-		mockPrisma.error.createMany.mockResolvedValue({ count: 1 });
+    expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "tasks", {
+      id: taskId,
+    });
+    expect(mockDBFn.createMany).toHaveBeenCalledWith(undefined, "errors", [
+      {
+        reason: "Task not found",
+        type: "email",
+        referenceId: data.id,
+        userId: data.userId,
+      },
+    ]);
+    expect(result).toStrictEqual({
+      id: data.id,
+      status: "FAILED",
+      reason: expect.any(String),
+      refund: expect.any(Boolean),
+    });
+  });
 
-		const result = await sendEmailsHandler(data, mockPrisma, mockTransporter);
+  it("should handle email not found error", async () => {
+    mockDBFindFirstTask(taskId, emailId, userId);
+    mockDBFn.findFirst.mockResolvedValue(null);
+    mockDBFn.createMany.mockResolvedValue({ count: 1 });
 
-		expect(mockPrisma.task.findFirst).toHaveBeenCalledWith({
-			where: { id: data.id, referenceId: data.reference_id },
-		});
-		expect(mockPrisma.email.findFirst).toHaveBeenCalledWith({
-			where: { id: data.reference_id },
-		});
-		expect(mockPrisma.error.createMany).toHaveBeenCalledWith({
-			data: [
-				{
-					reason: "Email not found",
-					type: "email",
-					referenceId: data.id,
-					userId: data.userId,
-				},
-			],
-			skipDuplicates: true,
-		});
-		expect(result).toStrictEqual({
-			id: data.id,
-			status: "FAILED",
-			reason: expect.any(String),
-			refund: expect.any(Boolean),
-		});
-	});
+    const result = await sendEmailsHandler(
+      data,
+      mockDBFn.createDatabase(),
+      mockTransporter,
+    );
+
+    expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "tasks", {
+      id: taskId,
+    });
+    expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "emails", {
+      id: emailId,
+      user_id: userId,
+    });
+    expect(mockDBFn.createMany).toHaveBeenCalledWith(undefined, "errors", [
+      {
+        reason: "Email not found",
+        type: "email",
+        referenceId: data.id,
+        userId: data.userId,
+      },
+    ]);
+    expect(result).toStrictEqual({
+      id: data.id,
+      status: "FAILED",
+      reason: expect.any(String),
+      refund: expect.any(Boolean),
+    });
+  });
 });

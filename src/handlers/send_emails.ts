@@ -1,7 +1,7 @@
 import type nodemailer from "nodemailer";
 import type SMTPPool from "nodemailer/lib/smtp-pool/index.js";
+import type { PoolClient } from "pg";
 import z from "zod";
-import type { PrismaClient } from "../../generated/prisma/index.js";
 import {
   BaseError,
   DeliveryError,
@@ -9,7 +9,8 @@ import {
   NotFoundError,
   ValidationError,
 } from "../errors/index.js";
-import { createPrismaErrorEntities, minifyZodError } from "../helpers.js";
+import { createDBErrorEntities, minifyZodError } from "../helpers.js";
+import { createMany, findFirst } from "../infra/db.js";
 import { logger } from "../infra/logger.js";
 
 export const SendEmailsRequest = z.object({
@@ -22,32 +23,34 @@ export const SendEmailsRequest = z.object({
 
 export async function sendEmailsHandler(
   data: z.infer<typeof SendEmailsRequest>,
-  prisma: PrismaClient,
+  db: PoolClient,
   transporter: nodemailer.Transporter<
     SMTPPool.SentMessageInfo,
     SMTPPool.Options
   >,
 ) {
   try {
-    logger.info(`sending new email with id ${data.id}`);
     const result = SendEmailsRequest.safeParse(data);
 
     if (!result.success) {
       throw new ValidationError({ message: minifyZodError(result.error) });
     }
 
+    logger.info(`sending new email with id ${data.id}`);
+
     const { id: taskId, reference_id, from } = result.data;
 
-    const task = await prisma.task.findFirst({
-      where: { id: taskId, referenceId: reference_id },
+    const task = await findFirst(db, "tasks", {
+      id: taskId,
     });
 
     if (!task) {
       throw new NotFoundError({ message: "Task not found" });
     }
 
-    const email = await prisma.email.findFirst({
-      where: { id: reference_id },
+    const email = await findFirst(db, "emails", {
+      id: reference_id,
+      user_id: task.user_id,
     });
 
     if (!email) {
@@ -79,17 +82,14 @@ export async function sendEmailsHandler(
     let reason = (err as Error).message;
     let refund = false;
 
-    logger.error(reason);
+    logger.error(err);
 
     if (!(err instanceof BaseError)) {
       reason = new InternalServerError({}).message;
       refund = true;
     }
 
-    await prisma.error.createMany({
-      data: createPrismaErrorEntities(data, err as Error),
-      skipDuplicates: true,
-    });
+    await createMany(db, "errors", createDBErrorEntities(data, err as Error));
 
     return {
       id: data.id,

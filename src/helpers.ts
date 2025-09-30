@@ -1,9 +1,9 @@
 import { getConnInfo } from "@hono/node-server/conninfo";
 import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import type { Prisma, PrismaClient } from "../generated/prisma/index.js";
-import { DeliveryError } from "./errors/index.js";
+import type { PoolClient } from "pg";
 import type z from "zod";
+import { DeliveryError } from "./errors/index.js";
 import { logger } from "./infra/logger.js";
 
 export function getUserIp(c: Context): string {
@@ -25,10 +25,10 @@ export function getUserIp(c: Context): string {
   return rawIP;
 }
 
-export function createPrismaErrorEntities(
+export function createDBErrorEntities(
   data: Record<string, string | number>,
   err: Error,
-): Prisma.ErrorCreateManyInput[] {
+): Record<string, unknown>[] {
   if (err instanceof DeliveryError) {
     return err.relation.map((error) => ({
       reason: error.join(": "),
@@ -51,9 +51,9 @@ export function createPrismaErrorEntities(
 export function honoHandler<T>(
   handler: (
     data: T,
-    prisma: PrismaClient,
+    db: PoolClient,
   ) => Promise<{ result: unknown; code: number }>,
-  prisma: PrismaClient,
+  db: PoolClient,
 ) {
   return async (c: Context) => {
     const body = !["GET", "DELETE"].includes(c.req.method)
@@ -69,7 +69,7 @@ export function honoHandler<T>(
 
     logger.debug(data);
 
-    const result = await handler(data as T, prisma);
+    const result = await handler(data as T, db);
 
     if (!result.result) {
       return c.body(null, result.code as ContentfulStatusCode);

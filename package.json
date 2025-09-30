@@ -3,8 +3,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/entrypoint/node.ts",
-    "build:node": "tsup ./src/entrypoint/node.ts --clean --minify",
-    "build:lambda": "tsup ./src/entrypoint/lambda.ts",
+    "build:node": "tsup ./src/entrypoint/node.ts --clean --minify --sourcemap",
+    "build:lambda": "tsup ./src/entrypoint/lambda.ts --clean --minify --sourcemap --legacy-output",
     "start:node": "node dist/node.cjs",
     "start:lambda": "node dist/lambda.cjs",
     "predocker:dev": "rm -f .env.docker && cat .env* > .env.docker",
@@ -14,20 +14,18 @@
     "lint:check": "exec biome check --write",
     "test": "vitest",
     "prepare": "husky",
-    "pre-commit": "lint-staged",
-    "db:deploy": "prisma migrate deploy && prisma generate",
-    "db:dev": "prisma migrate dev"
+    "pre-commit": "lint-staged"
   },
   "lint-staged": {
     "*": "pnpm run lint && pnpm run test"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.4",
-    "@prisma/client": "6.16.2",
     "amqplib": "^0.10.9",
     "hono": "^4.9.8",
     "hono-pino": "^0.10.2",
     "nodemailer": "^7.0.6",
+    "pg": "^8.16.3",
     "pino": "^9.11.0",
     "redis": "^5.8.2",
     "zod": "^4.1.11"
@@ -40,10 +38,11 @@
     "@types/aws-lambda": "^8.10.152",
     "@types/node": "^20.11.17",
     "@types/nodemailer": "^7.0.1",
+    "@types/pg": "^8.15.5",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.0",
-    "prisma": "^6.16.2",
     "tsup": "^8.5.0",
+    "tsx": "^4.20.6",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   }
