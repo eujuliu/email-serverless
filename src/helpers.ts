@@ -5,6 +5,12 @@ import type { PoolClient } from "pg";
 import type z from "zod";
 import { DeliveryError } from "./errors/index.js";
 import { logger } from "./infra/logger.js";
+import type { APIGatewayEvent } from "aws-lambda";
+import type { JwtClaims } from "./infra/authorization.js";
+
+export type LambdaRequest = APIGatewayEvent & {
+  jwtClaims: JwtClaims;
+};
 
 export function getUserIp(c: Context): string {
   const info = getConnInfo(c);
@@ -46,6 +52,37 @@ export function createDBErrorEntities(
       userId: data.userId as string,
     },
   ];
+}
+
+export async function lambdaHandler<T>(
+  request: LambdaRequest,
+  handler: (
+    data: T,
+    db: PoolClient,
+  ) => Promise<{ result: unknown; code: number }>,
+  db: PoolClient,
+) {
+  const body = JSON.parse(request.body ?? "{}");
+  const params = request.pathParameters ?? {};
+  const queryParams = request.queryStringParameters ?? {};
+  const claims = request.jwtClaims;
+
+  const data = {
+    ...body,
+    ...params,
+    ...queryParams,
+    ...claims,
+  };
+
+  logger.debug(data);
+
+  const result = await handler(data as T, db);
+
+  return {
+    statusCode: result.code,
+    body: JSON.stringify(result.result),
+    isBase64Encoded: false,
+  };
 }
 
 export function honoHandler<T>(
