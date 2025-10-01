@@ -5,6 +5,12 @@ import type { PoolClient } from "pg";
 import type z from "zod";
 import { DeliveryError } from "./errors/index.js";
 import { logger } from "./infra/logger.js";
+import type { APIGatewayEvent } from "aws-lambda";
+import type { JwtClaims } from "./infra/authorization.js";
+
+export type LambdaRequest = APIGatewayEvent & {
+  jwtClaims: JwtClaims;
+};
 
 export function getUserIp(c: Context): string {
   const info = getConnInfo(c);
@@ -26,15 +32,16 @@ export function getUserIp(c: Context): string {
 }
 
 export function createDBErrorEntities(
-  data: Record<string, string | number>,
+  taskId: string,
+  userId: string,
   err: Error,
 ): Record<string, unknown>[] {
   if (err instanceof DeliveryError) {
     return err.relation.map((error) => ({
       reason: error.join(": "),
-      referenceId: data.id as string,
+      reference_id: taskId,
       type: "email",
-      userId: data.userId as string,
+      user_id: userId,
     }));
   }
 
@@ -42,10 +49,41 @@ export function createDBErrorEntities(
     {
       reason: err.message,
       type: "email",
-      referenceId: data.id as string,
-      userId: data.userId as string,
+      reference_id: taskId,
+      user_id: userId,
     },
   ];
+}
+
+export async function lambdaHandler<T>(
+  request: LambdaRequest,
+  handler: (
+    data: T,
+    db: PoolClient,
+  ) => Promise<{ result: unknown; code: number }>,
+  db: PoolClient,
+) {
+  const body = JSON.parse(request.body ?? "{}");
+  const params = request.pathParameters ?? {};
+  const queryParams = request.queryStringParameters ?? {};
+  const claims = request.jwtClaims;
+
+  const data = {
+    ...body,
+    ...params,
+    ...queryParams,
+    ...claims,
+  };
+
+  logger.debug(data);
+
+  const result = await handler(data as T, db);
+
+  return {
+    statusCode: result.code,
+    body: JSON.stringify(result.result),
+    isBase64Encoded: false,
+  };
 }
 
 export function honoHandler<T>(

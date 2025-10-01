@@ -4,6 +4,7 @@ import type { PoolClient } from "pg";
 import z from "zod";
 import {
   BaseError,
+  ConflictError,
   DeliveryError,
   InternalServerError,
   NotFoundError,
@@ -14,11 +15,9 @@ import { createMany, findFirst } from "../infra/db.js";
 import { logger } from "../infra/logger.js";
 
 export const SendEmailsRequest = z.object({
-  id: z.uuidv4().nonoptional(),
-  reference_id: z.uuidv4().nonoptional(),
-  type: z.enum(["email"]).nonoptional(),
-  status: z.enum(["RUNNING"]).nonoptional(),
+  id: z.uuidv4().min(1, "id is required"),
   from: z.email().min(1, "from is required"),
+  user_id: z.uuidv4().min(1, "user_id is required"),
 });
 
 export async function sendEmailsHandler(
@@ -38,7 +37,15 @@ export async function sendEmailsHandler(
 
     logger.info(`sending new email with id ${data.id}`);
 
-    const { id: taskId, reference_id, from } = result.data;
+    const { id: taskId, user_id, from } = result.data;
+
+    const user = await findFirst(db, "users", {
+      id: user_id,
+    });
+
+    if (!user) {
+      throw new NotFoundError({ message: "User not found" });
+    }
 
     const task = await findFirst(db, "tasks", {
       id: taskId,
@@ -48,8 +55,16 @@ export async function sendEmailsHandler(
       throw new NotFoundError({ message: "Task not found" });
     }
 
+    if (task.status !== "RUNNING") {
+      throw new ConflictError({ message: "Task is not running" });
+    }
+
+    if (task.type !== "email") {
+      throw new ConflictError({ message: "Task is not for email" });
+    }
+
     const email = await findFirst(db, "emails", {
-      id: reference_id,
+      id: task.reference_id,
       user_id: task.user_id,
     });
 
@@ -89,7 +104,11 @@ export async function sendEmailsHandler(
       refund = true;
     }
 
-    await createMany(db, "errors", createDBErrorEntities(data, err as Error));
+    await createMany(
+      db,
+      "errors",
+      createDBErrorEntities(data.id, data.user_id, err as Error),
+    );
 
     return {
       id: data.id,

@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "tsx watch src/entrypoint/node.ts",
     "build:node": "tsup ./src/entrypoint/node.ts --clean --minify --sourcemap",
-    "build:lambda": "tsup ./src/entrypoint/lambda.ts --clean --minify --sourcemap --legacy-output",
+    "build:lambda": "tsup ./src/entrypoint/lambda.ts --clean --minify --sourcemap --legacy-output --platform=node",
     "start:node": "node dist/node.cjs",
     "start:lambda": "node dist/lambda.cjs",
     "predocker:dev": "rm -f .env.docker && cat .env* > .env.docker",
@@ -12,7 +12,7 @@
     "docker:dev:down": "docker stop $(docker ps -a -q --filter \"label=com.docker.compose.project=email-worker\") && docker system prune -a --filter \"label=com.docker.compose.project=email-worker\" -f && rm -f .env.docker",
     "lint": "exec biome lint --write",
     "lint:check": "exec biome check --write",
-    "test": "vitest",
+    "test": "vitest --no-cache",
     "prepare": "husky",
     "precommit": "lint-staged"
   },
@@ -24,6 +24,7 @@
     "amqplib": "^0.10.9",
     "hono": "^4.9.8",
     "hono-pino": "^0.10.2",
+    "jsonwebtoken": "^9.0.2",
     "nodemailer": "^7.0.6",
     "pg": "^8.16.3",
     "pino": "^9.11.0",
@@ -36,6 +37,7 @@
     "@commitlint/config-conventional": "^19.8.1",
     "@types/amqplib": "^0.10.7",
     "@types/aws-lambda": "^8.10.152",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.11.17",
     "@types/nodemailer": "^7.0.1",
     "@types/pg": "^8.15.5",

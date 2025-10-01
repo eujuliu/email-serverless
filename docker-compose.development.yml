@@ -43,7 +43,7 @@ services:
   email-worker:
     build:
       context: .
-      dockerfile: Dockerfile.node
+      dockerfile: Dockerfile.development
       platforms:
         - linux/amd64
     restart: unless-stopped
@@ -81,6 +81,11 @@ services:
           target: /app/
           ignore:
             - "!package.json"
+        - action: rebuild
+          path: ./Dockerfile*
+          target: /app/
+          ignore:
+            - "!Dockerfile*"
 
   ngrok:
     image: ngrok/ngrok:latest
