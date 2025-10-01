@@ -12,7 +12,7 @@
     "docker:dev:down": "docker stop $(docker ps -a -q --filter \"label=com.docker.compose.project=email-worker\") && docker system prune -a --filter \"label=com.docker.compose.project=email-worker\" -f && rm -f .env.docker",
     "lint": "exec biome lint --write",
     "lint:check": "exec biome check --write",
-    "test": "vitest",
+    "test": "vitest --no-cache",
     "prepare": "husky",
     "precommit": "lint-staged"
   },

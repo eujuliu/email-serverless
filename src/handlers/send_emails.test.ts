@@ -1,7 +1,11 @@
 import "../test/mocks.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTransporter } from "../infra/email.js";
-import { mockDBFindFirstEmail, mockDBFindFirstTask } from "../test/helpers.js";
+import {
+  mockDBFindFirstEmail,
+  mockDBFindFirstTask,
+  mockDBFindFirstUser,
+} from "../test/helpers.js";
 import { mockConfig, mockDBFn } from "../test/mocks.js";
 import { sendEmailsHandler } from "./send_emails.js";
 
@@ -17,16 +21,14 @@ describe("Send Emails", () => {
 
   const data = {
     id: taskId,
-    reference_id: emailId,
-    type: "email" as "email",
-    status: "RUNNING" as "RUNNING",
-    userId,
+    user_id: userId,
     from: "email@test.com",
   };
 
   it("should send email", async () => {
+    mockDBFindFirstUser(userId);
     mockDBFindFirstTask(taskId, emailId, userId);
-    mockDBFindFirstEmail(emailId, userId, "DRAFT");
+    mockDBFindFirstEmail(emailId, userId, "SCHEDULED");
 
     const result = await sendEmailsHandler(
       data,
@@ -34,13 +36,13 @@ describe("Send Emails", () => {
       mockTransporter,
     );
 
+    expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "users", {
+      id: userId,
+    });
     expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "tasks", {
       id: taskId,
     });
-    expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "emails", {
-      id: emailId,
-      user_id: userId,
-    });
+
     expect(mockTransporter.sendMail).toHaveBeenCalledWith({
       from: data.from,
       to: [""],
@@ -51,6 +53,7 @@ describe("Send Emails", () => {
   });
 
   it("should handle task not found error", async () => {
+    mockDBFindFirstUser(userId);
     mockDBFn.findFirst.mockResolvedValue(null);
     mockDBFn.createMany.mockResolvedValue({ count: 1 });
 
@@ -60,6 +63,9 @@ describe("Send Emails", () => {
       mockTransporter,
     );
 
+    expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "users", {
+      id: userId,
+    });
     expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "tasks", {
       id: taskId,
     });
@@ -67,8 +73,8 @@ describe("Send Emails", () => {
       {
         reason: "Task not found",
         type: "email",
-        referenceId: data.id,
-        userId: data.userId,
+        reference_id: data.id,
+        user_id: data.user_id,
       },
     ]);
     expect(result).toStrictEqual({
@@ -80,6 +86,7 @@ describe("Send Emails", () => {
   });
 
   it("should handle email not found error", async () => {
+    mockDBFindFirstUser(userId);
     mockDBFindFirstTask(taskId, emailId, userId);
     mockDBFn.findFirst.mockResolvedValue(null);
     mockDBFn.createMany.mockResolvedValue({ count: 1 });
@@ -90,6 +97,9 @@ describe("Send Emails", () => {
       mockTransporter,
     );
 
+    expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "users", {
+      id: userId,
+    });
     expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "tasks", {
       id: taskId,
     });
@@ -101,8 +111,8 @@ describe("Send Emails", () => {
       {
         reason: "Email not found",
         type: "email",
-        referenceId: data.id,
-        userId: data.userId,
+        reference_id: data.id,
+        user_id: data.user_id,
       },
     ]);
     expect(result).toStrictEqual({

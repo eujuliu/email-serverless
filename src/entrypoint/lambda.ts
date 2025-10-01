@@ -9,6 +9,13 @@ import { updateEmailHandler } from "../handlers/update_email.js";
 import { deleteEmailHandler } from "../handlers/delete_email.js";
 import { NotFoundError, UnauthorizedError } from "../errors/index.js";
 import { authorization } from "../infra/authorization.js";
+import { createTransporter } from "../infra/email.js";
+import {
+  sendEmailsHandler,
+  SendEmailsRequest,
+} from "../handlers/send_emails.js";
+import type z from "zod";
+import { createRabbitMQ, publish } from "../infra/rabbitmq.js";
 
 const config = createConfig(process.env);
 
@@ -16,7 +23,7 @@ export const handler = async (
   event: APIGatewayEvent,
 ): Promise<APIGatewayProxyResult> => {
   const jwtClaims = authorization(
-    event.headers.authorization ?? "",
+    event.headers?.authorization ?? "",
     config.JWT_SECRET,
   );
 
@@ -35,7 +42,33 @@ export const handler = async (
   const db = await createDatabase(config);
   const request = { ...event, jwtClaims };
 
-  switch (`${event.httpMethod}${event.resource}`) {
+  if (event.resource === "sendEmail") {
+    const rabbitmq = await createRabbitMQ(config);
+    const body = JSON.parse(request.body ?? "{}");
+    const email = createTransporter(config);
+    const result = await sendEmailsHandler(
+      body as z.infer<typeof SendEmailsRequest>,
+      db,
+      email,
+    );
+
+    await publish(
+      rabbitmq.channel,
+      "task.result",
+      "tasks",
+      Buffer.from(JSON.stringify(result)),
+    );
+
+    return {
+      statusCode: result.status === "FAILED" ? 400 : 200,
+      body: JSON.stringify(result),
+      isBase64Encoded: false,
+    };
+  }
+
+  const key = `${event.httpMethod}${event.resource}`;
+
+  switch (key) {
     case `GET/email/{id}`:
       return await lambdaHandler(request, getEmailHandler, db);
     case `GET/emails`:

@@ -32,15 +32,16 @@ export function getUserIp(c: Context): string {
 }
 
 export function createDBErrorEntities(
-  data: Record<string, string | number>,
+  taskId: string,
+  userId: string,
   err: Error,
 ): Record<string, unknown>[] {
   if (err instanceof DeliveryError) {
     return err.relation.map((error) => ({
       reason: error.join(": "),
-      referenceId: data.id as string,
+      reference_id: taskId,
       type: "email",
-      userId: data.userId as string,
+      user_id: userId,
     }));
   }
 
@@ -48,8 +49,8 @@ export function createDBErrorEntities(
     {
       reason: err.message,
       type: "email",
-      referenceId: data.id as string,
-      userId: data.userId as string,
+      reference_id: taskId,
+      user_id: userId,
     },
   ];
 }

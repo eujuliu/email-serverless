@@ -98,7 +98,7 @@ export function mockDBUpdateEmail(
 
 export function mockDBFindFirstTask(
   id: string,
-  referenceId: string,
+  reference_id: string,
   user_id: string,
 ) {
   mockDBFn.findFirst.mockResolvedValueOnce({
@@ -112,7 +112,7 @@ export function mockDBFindFirstTask(
     runAt: new Date(),
     timezone: "",
     idempotencyKey: "",
-    referenceId,
+    reference_id,
     retries: 0,
     status: "RUNNING",
   });
