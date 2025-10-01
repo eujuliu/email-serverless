@@ -1,11 +1,16 @@
 FROM node:22.18.0
-RUN useradd -ms /bin/sh -u 1001 app
-USER app
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+RUN corepack enable
 
 WORKDIR /app
-COPY . ./
-RUN npm install
 
-COPY --chown=app:app . /app
+COPY . .
 
-CMD ["sh", "-c", "npx prisma db push && npm run dev"]
+RUN CI=true pnpm install
+
+COPY . /app
+
+CMD ["pnpm", "run", "dev"]

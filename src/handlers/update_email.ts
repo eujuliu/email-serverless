@@ -1,90 +1,99 @@
-import type { Context } from "hono";
+import type { PoolClient } from "pg";
 import z from "zod";
 import {
-  ConflictError,
-  InternalServerError,
-  NotFoundError,
-  ValidationError,
+	ConflictError,
+	InternalServerError,
+	NotFoundError,
+	ValidationError,
 } from "../errors/index.js";
-import type { Env, JwtClaims } from "../index.js";
+import { minifyZodError } from "../helpers.js";
+import { findFirst, update } from "../infra/db.js";
+import { logger } from "../infra/logger.js";
 
 export const UpdateEmailRequest = z.object({
-  id: z.uuidv4().nonoptional(),
-  audience: z.array(z.string()).min(1).optional(),
-  subject: z.string().min(4).optional(),
-  html: z.string().min(1).optional(),
-  userId: z.uuidv4().nonoptional(),
+	id: z.uuidv4().nonoptional(),
+	audience: z.array(z.email()).min(1).optional(),
+	subject: z.string().min(4).optional(),
+	html: z.string().min(1).optional(),
+	userId: z.uuidv4().nonoptional(),
 });
 
-export async function updateEmailHandler(c: Context<Env>) {
-  const logger = c.get("logger");
+export async function updateEmailHandler(
+	data: z.infer<typeof UpdateEmailRequest>,
+	db: PoolClient,
+) {
+	try {
+		const result = UpdateEmailRequest.safeParse(data);
 
-  try {
-    const claims = c.get("jwtPayload") as JwtClaims;
-    const emailId = c.req.param("id");
-    const body = await c.req.json();
+		if (!result.success) {
+			const error = new ValidationError({
+				message: minifyZodError(result.error),
+			});
 
-    const result = UpdateEmailRequest.safeParse({
-      id: emailId,
-      ...body,
-      ...claims,
-    });
+			logger.error(error.message);
 
-    if (!result.success) {
-      const error = new ValidationError({});
-      return c.json(error, error.code);
-    }
+			return {
+				result: error,
+				code: error.code,
+			};
+		}
 
-    const prisma = c.get("prisma");
-    const { id, audience, subject, html, userId } = result.data;
+		const { id, audience, subject, html, userId } = result.data;
 
-    const exists = await prisma.user.findFirst({
-      where: {
-        id: userId,
-      },
-    });
+		const exists = await findFirst(db, "users", { id: userId });
 
-    if (!exists) {
-      const error = new NotFoundError({ message: "User not found" });
-      return c.json(error, error.code);
-    }
+		if (!exists) {
+			const error = new NotFoundError({ message: "User not found" });
+			return {
+				result: error,
+				code: error.code,
+			};
+		}
 
-    const email = await prisma.email.findFirst({
-      where: {
-        id,
-        userId,
-      },
-    });
+		const email = await findFirst(db, "emails", { id, user_id: userId });
 
-    if (!email) {
-      const error = new NotFoundError({ message: "Email not found" });
-      return c.json(error, error.code);
-    }
+		if (!email) {
+			const error = new NotFoundError({ message: "Email not found" });
+			return {
+				result: error,
+				code: error.code,
+			};
+		}
 
-    if (email.status === "SCHEDULED") {
-      const error = new ConflictError({
-        message: "Cannot update a SCHEDULED email",
-      });
-      return c.json(error, error.code);
-    }
+		if (email.status === "SCHEDULED") {
+			const error = new ConflictError({
+				message: "Cannot update a SCHEDULED email",
+			});
 
-    const updated = await prisma.email.update({
-      where: {
-        id: emailId,
-      },
-      data: {
-        audience,
-        subject,
-        html,
-      },
-    });
+			return {
+				result: error,
+				code: error.code,
+			};
+		}
 
-    return c.json(updated, 200);
-  } catch (err) {
-    logger.error((err as Error).message);
+		const updated = await update(
+			db,
+			"emails",
+			{ id, user_id: userId },
+			{
+				audience,
+				subject,
+				html,
+			},
+		);
 
-    const error = new InternalServerError({});
+		return {
+			result: updated,
+			code: 200,
+		};
+	} catch (err) {
+		logger.error((err as Error).message);
 
-    return c.json(error, error.code);
-  }
+		const error = new InternalServerError({});
+
+		return {
+			result: error,
+			code: error.code,
+		};
+	}
 }

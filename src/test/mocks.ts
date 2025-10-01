@@ -1,18 +1,16 @@
-import { pino } from "pino";
 import { vi } from "vitest";
-import { PrismaClient } from "../../generated/prisma/index.js";
-import { initializeConfig } from "../config.js";
-import { initializeRabbitMQ } from "../infra/rabbitmq.js";
+import { createConfig } from "../config.js";
+import { createRabbitMQ } from "../infra/rabbitmq.js";
 
-vi.mock("pino", () => ({
-  pino: vi.fn().mockReturnValue({
-    error: vi.fn((msg: string) => msg),
-    info: vi.fn((msg: string) => msg),
-  }),
+vi.mock("../infra/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+  },
 }));
 
 vi.mock("../config", () => ({
-  initializeConfig: vi.fn().mockReturnValue({
+  createConfig: vi.fn().mockReturnValue({
     EMAIL_SMTP_HOST: "",
     NODE_ENV: "debug",
     EMAIL_USER: "",
@@ -21,26 +19,8 @@ vi.mock("../config", () => ({
   }),
 }));
 
-vi.mock("../../generated/prisma/index.js", () => ({
-  PrismaClient: vi.fn().mockReturnValue({
-    user: { findFirst: vi.fn() },
-    email: {
-      findFirst: vi.fn(),
-      findMany: vi.fn(),
-      update: vi.fn(),
-      create: vi.fn(),
-      count: vi.fn(),
-      delete: vi.fn(),
-    },
-    task: { findFirst: vi.fn() },
-    error: { createMany: vi.fn() },
-
-    $disconnect: vi.fn(),
-  }),
-}));
-
 vi.mock("../infra/rabbitmq", () => ({
-  initializeRabbitMQ: vi.fn().mockReturnValue({
+  createRabbitMQ: vi.fn().mockReturnValue({
     connection: vi.fn(),
     channel: vi.fn().mockReturnValue({
       ack: vi.fn(),
@@ -53,7 +33,7 @@ vi.mock("../infra/rabbitmq", () => ({
 }));
 
 vi.mock("../infra/redis", () => ({
-  initializeRedis: vi.fn().mockReturnValue({
+  createRedis: vi.fn().mockReturnValue({
     hGetAll: vi.fn(),
     multi: vi.fn(() => ({
       hIncrBy: vi.fn().mockReturnThis(),
@@ -63,33 +43,28 @@ vi.mock("../infra/redis", () => ({
   }),
 }));
 
-vi.mock("nodemailer", () => ({
-  createTransport: vi.fn().mockReturnValue({
-    sendMail: vi.fn().mockReturnValue({
-      rejected: null,
-      rejectedErrors: null,
+vi.mock("../infra/email", () => ({
+  createTransporter: vi.fn().mockReturnValue({
+    sendMail: vi.fn().mockResolvedValue({
+      rejected: [],
+      rejectedErrors: [],
     }),
   }),
 }));
 
-export const mockHonoContext = {
-  var: { logger: pino() },
-  get: vi.fn(),
-  req: {
-    json: vi.fn(),
-    param: vi.fn(),
-  },
-  json: vi.fn(),
-  header: vi.fn(),
-  status: vi.fn(),
-  text: vi.fn(),
-  body: vi.fn(),
+export const mockDBFn = {
+  createDatabase: vi.fn(),
+  findFirst: vi.fn(),
+  findMany: vi.fn(),
+  create: vi.fn(),
+  createMany: vi.fn(),
+  update: vi.fn(),
+  remove: vi.fn(),
+  count: vi.fn(),
 };
 
-export const mockPrisma = vi.mockObject(
-  new PrismaClient({ errorFormat: "minimal" }),
-);
+vi.mock("../infra/db", () => mockDBFn);
 
-export const mockRabbitMq = vi.mockObject(
-  await initializeRabbitMQ(pino(), initializeConfig(pino())),
-);
+export const mockConfig = vi.mocked(createConfig(process.env));
+
+export const mockRabbitMq = vi.mocked(await createRabbitMQ(mockConfig));

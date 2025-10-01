@@ -1,0 +1,31 @@
+FROM node:lts-alpine3.17 AS base
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+RUN corepack enable
+
+FROM base AS builder
+
+WORKDIR /app
+
+COPY . .
+RUN CI=true pnpm install --frozen-lockfile
+RUN CI=true pnpm run build:node
+
+FROM base AS installer
+
+WORKDIR /app
+
+COPY package.json .
+COPY pnpm-lock.yaml .
+RUN CI=true pnpm install --frozen-lockfile --prod --ignore-scripts
+
+FROM base AS runner
+
+WORKDIR /app
+
+COPY --from=builder /app/dist/ ./dist
+COPY --from=installer /app/node_modules ./node_modules
+
+CMD ["node", "dist/node.cjs"]

@@ -1,67 +1,61 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import "../test/mocks.js";
-import type { Context } from "hono";
-import {
-	mockPrismaFindFirstUser,
-	mockPrismaFindManyEmail,
-} from "../test/helpers.js";
-import { mockHonoContext, mockPrisma } from "../test/mocks.js";
+import { mockDBFindFirstUser, mockDBFindManyEmail } from "../test/helpers.js";
 import { getEmailsHandler } from "./get_emails.js";
+import { mockDBFn } from "../test/mocks.js";
 
 describe("Get Emails Handler", () => {
-	beforeEach(() => {
-		vi.restoreAllMocks();
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
 
-		mockHonoContext.get.mockImplementation((key: "prisma" | "jwtPayload") => {
-			const values = {
-				prisma: mockPrisma,
-				jwtPayload: {
-					userId,
-				},
-			};
+  const userId = "e010b871-13d1-491c-8840-54cb93cbf7ac";
 
-			return values[key];
-		});
-	});
+  it("should get emails", async () => {
+    mockDBFindFirstUser(userId);
+    mockDBFindManyEmail(userId);
 
-	const userId = "e010b871-13d1-491c-8840-54cb93cbf7ac";
+    const result = await getEmailsHandler(
+      { limit: 10, offset: 0, orderBy: "ASC", userId },
+      mockDBFn.createDatabase(),
+    );
 
-	it("should get emails", async () => {
-		mockPrismaFindFirstUser(userId);
-		mockPrismaFindManyEmail(userId);
+    expect(mockDBFn.findFirst).toBeCalledWith(undefined, "users", {
+      id: userId,
+    });
+    expect(mockDBFn.findMany).toBeCalledWith(
+      undefined,
+      "emails",
+      { user_id: userId },
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(String),
+    );
+    expect(result).toStrictEqual({
+      result: {
+        emails: expect.any(Array),
+        pagination: {
+          offset: expect.any(Number),
+          limit: expect.any(Number),
+          orderBy: expect.any(String),
+          total: expect.any(Number),
+        },
+      },
+      code: 200,
+    });
+  });
 
-		await getEmailsHandler(mockHonoContext as unknown as Context);
+  it("should return error if user not exists", async () => {
+    mockDBFn.findFirst.mockResolvedValue(null);
 
-		expect(mockPrisma.user.findFirst).toBeCalledWith({ where: { id: userId } });
-		expect(mockPrisma.email.findMany).toBeCalledWith({
-			where: {
-				userId,
-			},
-			skip: expect.any(Number),
-			take: expect.any(Number),
-			orderBy: {
-				updatedAt: expect.any(String),
-			},
-		});
-		expect(mockHonoContext.json).toBeCalledWith(
-			{
-				emails: expect.any(Array),
-				pagination: {
-					offset: expect.any(Number),
-					limit: expect.any(Number),
-					orderBy: expect.any(String),
-					total: expect.any(Number),
-				},
-			},
-			200,
-		);
-	});
+    const result = await getEmailsHandler(
+      { limit: 10, offset: 0, orderBy: "ASC", userId },
+      mockDBFn.createDatabase(),
+    );
 
-	it("should return error if user not exists", async () => {
-		mockPrisma.user.findFirst.mockResolvedValue(null);
-
-		await getEmailsHandler(mockHonoContext as unknown as Context);
-
-		expect(mockHonoContext.json).toBeCalledWith(expect.any(Error), 404);
-	});
+    expect(result).toStrictEqual({
+      result: expect.any(Error),
+      code: 404,
+    });
+  });
 });

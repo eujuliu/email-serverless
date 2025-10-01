@@ -1,128 +1,115 @@
 import "../test/mocks.js";
-
-import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { initializeConfig } from "../config.js";
-import { consume, publish } from "../infra/rabbitmq.js";
-import {
-	mockPrismaFindFirstEmail,
-	mockPrismaFindFirstTask,
-} from "../test/helpers.js";
-import { mockPrisma, mockRabbitMq } from "../test/mocks.js";
+import { createTransporter } from "../infra/email.js";
+import { mockDBFindFirstEmail, mockDBFindFirstTask } from "../test/helpers.js";
+import { mockConfig, mockDBFn } from "../test/mocks.js";
 import { sendEmailsHandler } from "./send_emails.js";
 
 describe("Send Emails", () => {
-	beforeEach(() => {
-		vi.restoreAllMocks();
-	});
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
 
-	const logger = pino();
-	const config = initializeConfig(logger);
+  const taskId = crypto.randomUUID();
+  const emailId = crypto.randomUUID();
+  const userId = crypto.randomUUID();
+  const mockTransporter = vi.mockObject(createTransporter(mockConfig));
 
-	const taskId = crypto.randomUUID();
-	const emailId = crypto.randomUUID();
-	const userId = crypto.randomUUID();
+  const data = {
+    id: taskId,
+    reference_id: emailId,
+    type: "email" as "email",
+    status: "RUNNING" as "RUNNING",
+    userId,
+    from: "email@test.com",
+  };
 
-	const data: Record<string, string | number> = {
-		id: crypto.randomUUID(),
-		reference_id: crypto.randomUUID(),
-		type: "email",
-		status: "RUNNING",
-		userId: "user-uuid",
-	};
+  it("should send email", async () => {
+    mockDBFindFirstTask(taskId, emailId, userId);
+    mockDBFindFirstEmail(emailId, userId, "DRAFT");
 
-	it("should send email", async () => {
-		mockPrismaFindFirstEmail(emailId, userId, "DRAFT");
-		mockPrismaFindFirstTask(taskId, emailId);
+    const result = await sendEmailsHandler(
+      data,
+      mockDBFn.createDatabase(),
+      mockTransporter,
+    );
 
-		vi.mocked(publish).mockResolvedValue();
+    expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "tasks", {
+      id: taskId,
+    });
+    expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "emails", {
+      id: emailId,
+      user_id: userId,
+    });
+    expect(mockTransporter.sendMail).toHaveBeenCalledWith({
+      from: data.from,
+      to: [""],
+      subject: "",
+      html: "",
+    });
+    expect(result).toStrictEqual({ id: taskId, status: "COMPLETED" });
+  });
 
-		vi.mocked(consume).mockImplementation(
-			async (_c, _q, handler) => await handler(data),
-		);
+  it("should handle task not found error", async () => {
+    mockDBFn.findFirst.mockResolvedValue(null);
+    mockDBFn.createMany.mockResolvedValue({ count: 1 });
 
-		await sendEmailsHandler(logger, config, mockPrisma, mockRabbitMq.channel);
-		expect(mockPrisma.task.findFirst).toHaveBeenCalledWith({
-			where: { id: data.id, referenceId: data.reference_id },
-		});
-		expect(mockPrisma.email.findFirst).toHaveBeenCalledWith({
-			where: { id: data.reference_id },
-		});
-		expect(publish).toHaveBeenCalledWith(
-			mockRabbitMq.channel,
-			"task.result",
-			"tasks",
-			expect.any(Buffer),
-		);
-	});
+    const result = await sendEmailsHandler(
+      data,
+      mockDBFn.createDatabase(),
+      mockTransporter,
+    );
 
-	it("should handle task not found error", async () => {
-		mockPrisma.task.findFirst.mockResolvedValue(null);
-		mockPrisma.error.createMany.mockResolvedValue({ count: 1 });
-		vi.mocked(publish).mockResolvedValue();
+    expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "tasks", {
+      id: taskId,
+    });
+    expect(mockDBFn.createMany).toHaveBeenCalledWith(undefined, "errors", [
+      {
+        reason: "Task not found",
+        type: "email",
+        referenceId: data.id,
+        userId: data.userId,
+      },
+    ]);
+    expect(result).toStrictEqual({
+      id: data.id,
+      status: "FAILED",
+      reason: expect.any(String),
+      refund: expect.any(Boolean),
+    });
+  });
 
-		vi.mocked(consume).mockImplementation(
-			async (_c, _q, handler) => await handler(data),
-		);
+  it("should handle email not found error", async () => {
+    mockDBFindFirstTask(taskId, emailId, userId);
+    mockDBFn.findFirst.mockResolvedValue(null);
+    mockDBFn.createMany.mockResolvedValue({ count: 1 });
 
-		await sendEmailsHandler(logger, config, mockPrisma, mockRabbitMq.channel);
+    const result = await sendEmailsHandler(
+      data,
+      mockDBFn.createDatabase(),
+      mockTransporter,
+    );
 
-		expect(mockPrisma.task.findFirst).toHaveBeenCalledWith({
-			where: { id: data.id, referenceId: data.reference_id },
-		});
-		expect(mockPrisma.error.createMany).toHaveBeenCalledWith({
-			data: [
-				{
-					reason: "Task not found",
-					type: "email",
-					referenceId: data.id,
-					userId: data.userId,
-				},
-			],
-			skipDuplicates: true,
-		});
-		expect(publish).toHaveBeenCalledWith(
-			mockRabbitMq.channel,
-			"task.result",
-			"tasks",
-			expect.any(Buffer),
-		);
-	});
-
-	it("should handle email not found error", async () => {
-		mockPrismaFindFirstTask(taskId, emailId);
-		mockPrisma.email.findFirst.mockResolvedValue(null);
-		mockPrisma.error.createMany.mockResolvedValue({ count: 1 });
-		vi.mocked(publish).mockResolvedValue();
-
-		vi.mocked(consume).mockImplementation(
-			async (_c, _q, handler) => await handler(data),
-		);
-
-		await sendEmailsHandler(logger, config, mockPrisma, mockRabbitMq.channel);
-
-		expect(mockPrisma.task.findFirst).toHaveBeenCalledWith({
-			where: { id: data.id, referenceId: data.reference_id },
-		});
-		expect(mockPrisma.email.findFirst).toHaveBeenCalledWith({
-			where: { id: data.reference_id },
-		});
-		expect(mockPrisma.error.createMany).toHaveBeenCalledWith({
-			data: [
-				{
-					reason: "Email not found",
-					type: "email",
-					referenceId: data.id,
-					userId: data.userId,
-				},
-			],
-			skipDuplicates: true,
-		});
-		expect(publish).toHaveBeenCalledWith(
-			mockRabbitMq.channel,
-			"task.result",
-			"tasks",
-			expect.any(Buffer),
-		);
-	});
+    expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "tasks", {
+      id: taskId,
+    });
+    expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "emails", {
+      id: emailId,
+      user_id: userId,
+    });
+    expect(mockDBFn.createMany).toHaveBeenCalledWith(undefined, "errors", [
+      {
+        reason: "Email not found",
+        type: "email",
+        referenceId: data.id,
+        userId: data.userId,
+      },
+    ]);
+    expect(result).toStrictEqual({
+      id: data.id,
+      status: "FAILED",
+      reason: expect.any(String),
+      refund: expect.any(Boolean),
+    });
+  });
 });

@@ -1,11 +1,20 @@
-import type pino from "pino";
 import z from "zod";
+import { logger } from "./infra/logger.js";
 
 const Schema = z.object({
 	PORT: z.preprocess((val) => Number(val), z.number().default(3000)),
 	NODE_ENV: z.string().default("production"),
 
 	JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
+
+	POSTGRES_USER: z.string().min(1, "POSTGRES_USER is required"),
+	POSTGRES_PASSWORD: z.string().min(1, "POSTGRES_PASSWORD is required"),
+	POSTGRES_DB: z.string().min(1, "POSTGRES_DB is required"),
+	POSTGRES_HOST: z.string().min(1, "POSTGRES_HOST is required"),
+	POSTGRES_PORT: z.preprocess(
+		(val) => Number(val),
+		z.number().min(1, "POSTGRES_PORT is required"),
+	),
 
 	REDIS_HOST: z.string().min(1, "REDIS_URL is required"),
 	REDIS_PORT: z.preprocess(
@@ -40,9 +49,9 @@ const Schema = z.object({
 
 export type Config = z.infer<typeof Schema>;
 
-export function initializeConfig(logger: pino.Logger<never, boolean>): Config {
+export function createConfig(env: Record<string, unknown>): Config {
 	try {
-		const result = Schema.safeParse(process.env);
+		const result = Schema.safeParse(env);
 
 		if (result.error) {
 			throw new Error(z.prettifyError(result.error));
@@ -50,7 +59,9 @@ export function initializeConfig(logger: pino.Logger<never, boolean>): Config {
 
 		return result.data;
 	} catch (err) {
+		logger.debug(env);
 		logger.error((err as Error).message);
+
 		throw new Error(
 			"Invalid or missing environment variables. Check logs for details.",
 		);
