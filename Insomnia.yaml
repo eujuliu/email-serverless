@@ -1,0 +1,439 @@
+type: spec.insomnia.rest/5.0
+name: Email Worker
+meta:
+  id: wrk_28f74e33ed814d2e875f87c73c477ff4
+  created: 1758573043233
+  modified: 1758573043233
+  description: ""
+collection:
+  - url: "{{ _.addr }}/email"
+    name: email
+    meta:
+      id: req_ef036aba5d244feb93281fa3c708fcc1
+      created: 1758573074876
+      modified: 1759082321598
+      isPrivate: false
+      description: ""
+      sortKey: -1758573074876
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"subject": "test",
+        	"audience": ["email@gmail.com"],
+        	"html": "<p>test</p>"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+        id: pair_2d5fed363cc34a62b6a8ff5181eb48dc
+      - name: User-Agent
+        value: insomnia/11.6.1
+        id: pair_c1ce28f46fa6451bb0d615129ed82bb9
+      - id: pair_23da0e509a204ddca7159111db0ef908
+        name: Authorization
+        value: Bearer {{ _.authorization }}
+        description: ""
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{ _.addr }}/ping"
+    name: ping
+    meta:
+      id: req_4acdf8504098452f889f78281f5789b4
+      created: 1758575091253
+      modified: 1758575093981
+      isPrivate: false
+      description: ""
+      sortKey: -1758353510577
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.6.1
+        id: pair_c1ce28f46fa6451bb0d615129ed82bb9
+      - id: pair_23da0e509a204ddca7159111db0ef908
+        name: Authorization
+        value: Bearer
+          eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwYWI5NzM0ZS03ZjdkLTQ0OGItOTRhZS1iYTA2ZDFlYjgzMWQiLCJlbWFpbCI6InRlc3R1c2VyQGVtYWlsLmNvbSIsInN1YiI6IjBhYjk3MzRlLTdmN2QtNDQ4Yi05NGFlLWJhMDZkMWViODMxZCIsImV4cCI6MTg1ODIxNzc3OCwibmJmIjoxODU4MjE2Njc1LCJpYXQiOjE4NTgyMTY4Nzh9.8s2VCDvKPsmgDjIdGNYelBnxNDHBWdYJkX5w2Ri98_M
+        description: ""
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{ _.addr }}/email/{{ _.last_email }}"
+    name: email
+    meta:
+      id: req_29497943d4e84f8381c81bf88fcf68a6
+      created: 1758636305178
+      modified: 1758636406318
+      isPrivate: false
+      description: ""
+      sortKey: -1758463292726.5
+    method: PUT
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"subject": "test",
+        	"audience": ["email@email.com"],
+        	"html": "<p>test1</p>"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+        id: pair_267db95c40ea45dc8a4b4497810ea0c0
+      - name: User-Agent
+        value: insomnia/11.6.1
+        id: pair_c1ce28f46fa6451bb0d615129ed82bb9
+      - id: pair_23da0e509a204ddca7159111db0ef908
+        name: Authorization
+        value: Bearer {{ _.authorization }}
+        description: ""
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{ _.addr }}/email/{{ _.last_email }}"
+    name: email
+    meta:
+      id: req_f70a9bf95fbe4d4eb11f0c09d2a8a8bf
+      created: 1758642555362
+      modified: 1759097358718
+      isPrivate: false
+      description: ""
+      sortKey: -1758518183801.25
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.6.1
+        id: pair_c1ce28f46fa6451bb0d615129ed82bb9
+      - id: pair_23da0e509a204ddca7159111db0ef908
+        name: Authorization
+        value: Bearer {{ _.authorization }}
+        description: ""
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{ _.addr }}/emails"
+    name: emails
+    meta:
+      id: req_352a8a5ae68a4725a998978ea7cfe03f
+      created: 1758642634002
+      modified: 1758642638640
+      isPrivate: false
+      description: ""
+      sortKey: -1758490738263.875
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.6.1
+        id: pair_c1ce28f46fa6451bb0d615129ed82bb9
+      - id: pair_23da0e509a204ddca7159111db0ef908
+        name: Authorization
+        value: Bearer {{ _.authorization }}
+        description: ""
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{ _.addr }}/email/{{ _.last_email }}"
+    name: email
+    meta:
+      id: req_4348fc0b40dd4803a90acebeedcc6221
+      created: 1758828470297
+      modified: 1758828475820
+      isPrivate: false
+      description: ""
+      sortKey: -1758408401651.75
+    method: DELETE
+    headers:
+      - name: User-Agent
+        value: insomnia/11.6.1
+        id: pair_c1ce28f46fa6451bb0d615129ed82bb9
+      - id: pair_23da0e509a204ddca7159111db0ef908
+        name: Authorization
+        value: Bearer {{ _.authorization }}
+        description: ""
+        disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - name: lambda
+    meta:
+      id: fld_fe611c8e0d5a487b9cd58c0db7efa746
+      created: 1759325067199
+      modified: 1759325067199
+      sortKey: -1759325067199
+      description: ""
+    children:
+      - url: "{{ _.lambda_addr }}"
+        name: GET /email/{id}
+        meta:
+          id: req_fca114928b234b12815895193c116ecc
+          created: 1759263097513
+          modified: 1759333621787
+          isPrivate: false
+          description: ""
+          sortKey: -1759325071237
+        method: GET
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"resource": "/email/{id}",
+            	"path": "/email/9a4c1018-5a7b-495b-8f66-0f0039038787",
+            	"httpMethod": "GET",
+            	"pathParameters": {
+            		"id": "9a4c1018-5a7b-495b-8f66-0f0039038787"
+            	},
+            	"headers": {
+            		"authorization": "Bearer {{ _.authorization }}"
+            	}
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.6.1
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.lambda_addr }}"
+        name: POST /email
+        meta:
+          id: req_90db45da3718467a8cb97cc76865bf7a
+          created: 1759331452189
+          modified: 1759333626658
+          isPrivate: false
+          description: ""
+          sortKey: -1758949073056.5
+        method: GET
+        body:
+          mimeType: application/json
+          text: >-
+            {
+            	"resource": "/email",
+            	"path": "/email",
+            	"httpMethod": "POST",
+            	"headers": {
+            		"authorization": "Bearer {{ _.authorization }}"
+            	},
+            	"body": "{\"subject\":\"test\",\"audience\":[\"email@gmail.com\"],\"html\":\"<p>test</p>\"}"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.6.1
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.lambda_addr }}"
+        name: PUT /email/{id}
+        meta:
+          id: req_38639709320f4a5c8765e61e4e3beb39
+          created: 1759332781949
+          modified: 1759333628589
+          isPrivate: false
+          description: ""
+          sortKey: -1758761073966.25
+        method: GET
+        body:
+          mimeType: application/json
+          text: >-
+            {
+            	"resource": "/email/{id}",
+            	"path": "/email/9a4c1018-5a7b-495b-8f66-0f0039038787",
+            	"httpMethod": "PUT",
+            	"pathParameters": {
+            		"id": "9a4c1018-5a7b-495b-8f66-0f0039038787"
+            	},
+            	"headers": {
+            		"authorization": "Bearer {{ _.authorization }}"
+            	},
+            	"body": "{\"subject\":\"test\",\"audience\":[\"email@gmail.com\"],\"html\":\"<p>test1</p>\"}"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.6.1
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.lambda_addr }}"
+        name: GET /emails
+        meta:
+          id: req_8e6ea4f2cacc4ca0af6fa9b7dad1339e
+          created: 1759333079143
+          modified: 1759333624527
+          isPrivate: false
+          description: ""
+          sortKey: -1759137072146.75
+        method: GET
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"resource": "/emails",
+            	"path": "/emails",
+            	"httpMethod": "GET",
+            	"headers": {
+            		"authorization": "Bearer {{ _.authorization }}"
+            	}
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.6.1
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.lambda_addr }}"
+        name: DELETE /email/{id}
+        meta:
+          id: req_bf16d4997ca64939829dbe5b1312198a
+          created: 1759333122832
+          modified: 1759333617767
+          isPrivate: false
+          description: ""
+          sortKey: -1758667074421.125
+        method: GET
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"resource": "/email/{id}",
+            	"path": "/email/9a4c1018-5a7b-495b-8f66-0f0039038787",
+            	"httpMethod": "DELETE",
+            	"pathParameters": {
+            		"id": "9a4c1018-5a7b-495b-8f66-0f0039038787"
+            	},
+            	"headers": {
+            		"authorization": "Bearer {{ _.authorization }}"
+            	}
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.6.1
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.lambda_addr }}"
+        name: sendEmail
+        meta:
+          id: req_b6b76b05bfa34c0fb5859ca2a38fac41
+          created: 1759340427934
+          modified: 1759342264510
+          isPrivate: false
+          description: ""
+          sortKey: -1758667074321.125
+        method: GET
+        body:
+          mimeType: application/json
+          text: >-
+            {
+            	"resource": "sendEmail",
+            	"headers": {
+            		"authorization": "Bearer {{ _.authorization }}"
+            	},
+            	"body": "{\"id\":\"fbacd1d2-89bb-4d9e-84a0-a246e3de58e3\",\"from\":\"test@gmail.com\",\"user_id\":\"0ab9734e-7f7d-448b-94ae-ba06d1eb831d\"}"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.6.1
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_1663f10d804101381583779efc94e771be7f23cb
+    created: 1758573043235
+    modified: 1758573043235
+environments:
+  name: Base Environment
+  meta:
+    id: env_1663f10d804101381583779efc94e771be7f23cb
+    created: 1758573043234
+    modified: 1759333610010
+    isPrivate: false
+  data:
+    addr: localhost:3000
+    last_email: "{% response 'body', 'req_ef036aba5d244feb93281fa3c708fcc1',
+      'b64::JC5pZA==::46b', 'no-history', 60 %}"
+    authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwYWI5NzM0ZS03ZjdkLTQ0OGItOTRhZS1iYTA2ZDFlYjgzMWQiLCJlbWFpbCI6InRlc3R1c2VyQGVtYWlsLmNvbSIsInN1YiI6IjBhYjk3MzRlLTdmN2QtNDQ4Yi05NGFlLWJhMDZkMWViODMxZCIsImV4cCI6MTg1ODU3ODkwOH0.6C9KDgMu5L9GmV5pl7bTu2AiCGBiJ0ZvclLPUT8MRXU
+    lambda_addr: http://localhost:3000/2015-03-31/functions/function/invocations
+spec:
+  meta:
+    id: spc_ce38511fd1934b4d9e8b3212fb8153be
+    created: 1758573043234
+    modified: 1758720518107
