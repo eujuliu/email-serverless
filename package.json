@@ -8,7 +8,7 @@
     "start:node": "node dist/node.cjs",
     "start:lambda": "node dist/lambda.cjs",
     "predocker:dev": "rm -f .env.docker && cat .env* > .env.docker",
-    "docker:dev": "docker compose --env-file ./.env.docker -f ./docker-compose.development.yml -p email-worker watch --prune",
+    "docker:dev": "docker compose --env-file ./.env.docker -f ./docker-compose.development.yml -p email-worker --profile all watch --prune",
     "docker:dev:down": "docker stop $(docker ps -a -q --filter \"label=com.docker.compose.project=email-worker\") && docker system prune -a --filter \"label=com.docker.compose.project=email-worker\" -f && rm -f .env.docker",
     "lint": "exec biome lint --write",
     "lint:check": "exec biome check --write",

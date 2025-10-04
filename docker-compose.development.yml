@@ -12,6 +12,9 @@ services:
       timeout: 3s
       retries: 3
 
+    profiles:
+      - all
+
   redis:
     image: redis/redis-stack
     restart: unless-stopped
@@ -25,6 +28,9 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+
+    profiles:
+      - all
 
   rabbitmq:
     image: rabbitmq:4-management-alpine
@@ -40,14 +46,17 @@ services:
       timeout: 10s
       retries: 3
 
+    profiles:
+      - all
+
   email-worker:
     build:
       context: .
-      dockerfile: Dockerfile.development
+      dockerfile: Dockerfile.node
       platforms:
         - linux/amd64
     restart: unless-stopped
-    container_name: app
+    container_name: email-worker
     env_file: ./.env.docker
     platform: linux/amd64
     ports:
@@ -87,6 +96,10 @@ services:
           ignore:
             - "!Dockerfile*"
 
+    profiles:
+      - all
+      - single
+
   ngrok:
     image: ngrok/ngrok:latest
     restart: unless-stopped
@@ -99,6 +112,9 @@ services:
     ports:
       - 4040:4040
 
+    profiles:
+      - all
+
   mailcatcher:
     container_name: mailcatcher
     image: sj26/mailcatcher
@@ -108,3 +124,12 @@ services:
     ports:
       - "${EMAIL_SMTP_PORT}:1025"
       - "${EMAIL_HTTP_PORT}:1080"
+
+    profiles:
+      - all
+      - single
+
+networks:
+  default:
+    name: scheduler
+    external: true
