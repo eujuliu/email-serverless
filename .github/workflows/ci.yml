@@ -79,6 +79,8 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - run: pnpm install --frozen-lockfile
+
       - name: Validate current commit (last commit) with commitlint
         if: github.event_name == 'push'
         run: npx commitlint --last --verbose
