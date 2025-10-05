@@ -1,7 +1,7 @@
 import type { PoolClient } from "pg";
 
 export async function createEmailTable(pool: PoolClient) {
-  await pool.query(`
+	await pool.query(`
      DO $$ BEGIN
        CREATE TYPE email_status AS ENUM ('DRAFT', 'SCHEDULED');
      EXCEPTION
@@ -9,7 +9,7 @@ export async function createEmailTable(pool: PoolClient) {
      END $$;
    `);
 
-  await pool.query(`
+	await pool.query(`
     CREATE TABLE IF NOT EXISTS emails (
       id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -22,7 +22,7 @@ export async function createEmailTable(pool: PoolClient) {
     );
   `);
 
-  await pool.query(
-    `CREATE INDEX IF NOT EXISTS idx_emails_user_id ON emails(user_id);`,
-  );
+	await pool.query(
+		`CREATE INDEX IF NOT EXISTS idx_emails_user_id ON emails(user_id);`,
+	);
 }

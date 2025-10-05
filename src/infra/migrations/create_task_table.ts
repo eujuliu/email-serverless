@@ -1,7 +1,7 @@
 import type { PoolClient } from "pg";
 
 export async function createTaskTable(pool: PoolClient) {
-  await pool.query(`
+	await pool.query(`
       DO $$ BEGIN
         CREATE TYPE task_status AS ENUM ('PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELED');
       EXCEPTION
@@ -9,7 +9,7 @@ export async function createTaskTable(pool: PoolClient) {
       END $$;
     `);
 
-  await pool.query(`
+	await pool.query(`
     CREATE TABLE IF NOT EXISTS tasks (
       id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -27,7 +27,7 @@ export async function createTaskTable(pool: PoolClient) {
     );
   `);
 
-  await pool.query(
-    `CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);`,
-  );
+	await pool.query(
+		`CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);`,
+	);
 }

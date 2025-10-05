@@ -1,7 +1,7 @@
 import type { PoolClient } from "pg";
 
 export async function createUserTable(pool: PoolClient) {
-  await pool.query(`
+	await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),

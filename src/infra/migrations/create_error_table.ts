@@ -1,7 +1,7 @@
 import type { PoolClient } from "pg";
 
 export async function createErrorTable(pool: PoolClient) {
-  await pool.query(`
+	await pool.query(`
     CREATE TABLE IF NOT EXISTS errors (
       id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -13,7 +13,7 @@ export async function createErrorTable(pool: PoolClient) {
     );
   `);
 
-  await pool.query(
-    `CREATE INDEX IF NOT EXISTS idx_errors_user_id ON errors(user_id);`,
-  );
+	await pool.query(
+		`CREATE INDEX IF NOT EXISTS idx_errors_user_id ON errors(user_id);`,
+	);
 }
