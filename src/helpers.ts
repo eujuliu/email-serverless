@@ -31,30 +31,6 @@ export function getUserIp(c: Context): string {
   return rawIP;
 }
 
-export function createDBErrorEntities(
-  taskId: string,
-  userId: string,
-  err: Error,
-): Record<string, unknown>[] {
-  if (err instanceof DeliveryError) {
-    return err.relation.map((error) => ({
-      reason: error.join(": "),
-      reference_id: taskId,
-      type: "email",
-      user_id: userId,
-    }));
-  }
-
-  return [
-    {
-      reason: err.message,
-      type: "email",
-      reference_id: taskId,
-      user_id: userId,
-    },
-  ];
-}
-
 export async function lambdaHandler<T>(
   request: LambdaRequest,
   handler: (

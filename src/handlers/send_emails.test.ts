@@ -55,7 +55,6 @@ describe("Send Emails", () => {
   it("should handle task not found error", async () => {
     mockDBFindFirstUser(userId);
     mockDBFn.findFirst.mockResolvedValue(null);
-    mockDBFn.createMany.mockResolvedValue({ count: 1 });
 
     const result = await sendEmailsHandler(
       data,
@@ -69,14 +68,6 @@ describe("Send Emails", () => {
     expect(mockDBFn.findFirst).toHaveBeenCalledWith(undefined, "tasks", {
       id: taskId,
     });
-    expect(mockDBFn.createMany).toHaveBeenCalledWith(undefined, "errors", [
-      {
-        reason: "Task not found",
-        type: "email",
-        reference_id: data.id,
-        user_id: data.user_id,
-      },
-    ]);
     expect(result).toStrictEqual({
       id: data.id,
       status: "FAILED",
@@ -89,7 +80,6 @@ describe("Send Emails", () => {
     mockDBFindFirstUser(userId);
     mockDBFindFirstTask(taskId, emailId, userId);
     mockDBFn.findFirst.mockResolvedValue(null);
-    mockDBFn.createMany.mockResolvedValue({ count: 1 });
 
     const result = await sendEmailsHandler(
       data,
@@ -107,14 +97,6 @@ describe("Send Emails", () => {
       id: emailId,
       user_id: userId,
     });
-    expect(mockDBFn.createMany).toHaveBeenCalledWith(undefined, "errors", [
-      {
-        reason: "Email not found",
-        type: "email",
-        reference_id: data.id,
-        user_id: data.user_id,
-      },
-    ]);
     expect(result).toStrictEqual({
       id: data.id,
       status: "FAILED",

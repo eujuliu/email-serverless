@@ -10,8 +10,8 @@ import {
   NotFoundError,
   ValidationError,
 } from "../errors/index.js";
-import { createDBErrorEntities, minifyZodError } from "../helpers.js";
-import { createMany, findFirst } from "../infra/db.js";
+import { minifyZodError } from "../helpers.js";
+import { findFirst } from "../infra/db.js";
 import { logger } from "../infra/logger.js";
 
 export const SendEmailsRequest = z.object({
@@ -99,16 +99,15 @@ export async function sendEmailsHandler(
 
     logger.error(err);
 
+    if (err instanceof ValidationError) {
+      refund = true;
+      reason = "A validation error happens";
+    }
+
     if (!(err instanceof BaseError)) {
       reason = new InternalServerError({}).message;
       refund = true;
     }
-
-    await createMany(
-      db,
-      "errors",
-      createDBErrorEntities(data.id, data.user_id, err as Error),
-    );
 
     return {
       id: data.id,
