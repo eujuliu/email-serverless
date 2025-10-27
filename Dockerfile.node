@@ -1,5 +1,7 @@
 FROM node:lts-alpine3.17 AS base
 
+RUN apk add --no-cache curl
+
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
