@@ -33,6 +33,10 @@ import {
 } from "../infra/rabbitmq.js";
 import { rateLimiter } from "../infra/rate_limiter.js";
 import { createRedis } from "../infra/redis.js";
+import { prometheus } from "@hono/prometheus";
+import { NodeSDK } from "@opentelemetry/sdk-node";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import { httpInstrumentationMiddleware } from "@hono/otel";
 
 export type JwtClaims = {
   userId: string;
@@ -72,15 +76,38 @@ async function main() {
     redis as unknown as RedisClientType,
   );
 
+  const { printMetrics, registerMetrics } = prometheus();
+  const openTelemetrySDK = new NodeSDK({
+    serviceName: "email-worker",
+    traceExporter: new OTLPTraceExporter({
+      url: "http://jaeger:4318/v1/traces",
+    }),
+  });
+  openTelemetrySDK.start();
+
   app.use(
     pinoLogger({
       pino: pino,
     }),
   );
 
+  app.get("/metrics", printMetrics);
   app.get("/ping", (c) => {
     return c.text("pong");
   });
+
+  app.use("*", registerMetrics);
+  app.use(
+    httpInstrumentationMiddleware({
+      serviceVersion: "1.0.0",
+      captureRequestHeaders: ["user-agent"],
+      captureResponseHeaders: [
+        "X-Ratelimit-Limit",
+        "X-Ratelimit-Remaining",
+        "Content-Length",
+      ],
+    }),
+  );
 
   app.use(cors());
   app.use(secureHeaders());
