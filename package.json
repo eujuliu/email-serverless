@@ -10,6 +10,7 @@
     "predocker:dev": "rm -f .env.docker && cat .env* > .env.docker",
     "docker:dev": "docker compose --env-file ./.env.docker -f ./docker-compose.development.yml -p email-worker --profile all watch --prune",
     "docker:dev:down": "docker stop $(docker ps -a -q --filter \"label=com.docker.compose.project=email-worker\") && docker system prune -a --filter \"label=com.docker.compose.project=email-worker\" -f && rm -f .env.docker",
+    "docker:build": "docker build -t eujuliu/email_worker -f ./Dockerfile.node .",
     "lint": "exec biome lint --write",
     "lint:check": "exec biome check --write",
     "test": "vitest --no-cache",
