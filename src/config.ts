@@ -2,7 +2,7 @@ import z from "zod";
 import { logger } from "./infra/logger.js";
 
 const Schema = z.object({
-  PORT: z.preprocess((val) => Number(val), z.number().default(3000)),
+  PORT: z.preprocess((val) => Number(val), z.number()).default(8080),
   NODE_ENV: z.string().default("production"),
 
   JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
@@ -58,7 +58,6 @@ export function createConfig(env: Record<string, unknown>): Config {
 
     return result.data;
   } catch (err) {
-    logger.debug(env);
     logger.error((err as Error).message);
 
     throw new Error(

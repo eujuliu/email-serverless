@@ -11,10 +11,11 @@
 # deps
 node_modules/
 
-# env
-.env
-.env.production
-.env.docker
+# env file
+.env*
+!.env.test
+!.env.development
+!.env.example
 
 # logs
 logs/
