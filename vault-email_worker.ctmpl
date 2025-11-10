@@ -1,6 +1,4 @@
 {{ with secret "kv/email_worker/data/envs" -}}
-NGROK_AUTHTOKEN={{ .Data.data.NGROK_AUTHTOKEN }}
-NGROK_URL={{ .Data.data.NGROK_URL }}
 JWT_SECRET={{ .Data.data.JWT_SECRET }}
 POSTGRES_USER={{ .Data.data.POSTGRES_USER }}
 POSTGRES_PASSWORD={{ .Data.data.POSTGRES_PASSWORD }}
